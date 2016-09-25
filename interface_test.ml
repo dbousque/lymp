@@ -12,13 +12,6 @@ class pymodule module_name =
 let pyroot = "."
 let fetch = pymodule "fetch"
 
-type pyobj =
-	Pystr of string
-	| Pyint of int
-	| Pylist of pyobj list
-	| Pynone
-	| Pynamedarg of (str * pyobj)
-
 let rec print_pyobj = function
 	| Pystr str -> print_endline str
 	| Pyint i -> print_int i ; print_endline ""
@@ -42,3 +35,28 @@ let () =
 		match page_content with
 		| Pystr str -> print_endline str
 		| _ -> raise "error"
+
+
+let () =
+	let py = Pyml.init "." in
+	let fetch = py.get_module "fetch" in
+
+
+	let page_content = fetch.call "get_url" [Pystr "https://google.fr"]
+
+	let page_content = py_call fetch "get_url" [Pystr "https://google.fr"]
+
+
+(* get time minimal example *)
+
+let py = Pyml.init "."
+let time = py.get_module "time"
+
+let get_time () =
+	let t = time.call "time" [] in
+	match t with
+	| Pyfloat f -> f
+	| _ -> raise Error
+
+let () =
+	let t = time.call "time" [] in

@@ -31,20 +31,23 @@ class PipeReaderWriter:
 		return (read_pipe, write_pipe)
 
 	def send_bytes(self, byts):
-		# '=Q' to force unsigned 8 bytes integer
-		self.write_pipe.write(pack('=Q', len(byts)))
+		# '=q' to force signed 8 bytes integer
+		self.write_pipe.write(pack('=q', len(byts)))
 		#self.write_pipe.flush()
 		self.write_pipe.write(byts)
 		#self.write_pipe.flush()
 
 	def get_bytes(self):
-		# '=Q' to force unsigned 8 bytes integer
-		nb_bytes = unpack('=Q', self.read_pipe.read(8))[0]
+		# '=q' to force signed 8 bytes integer
+		nb_bytes = unpack('=q', self.read_pipe.read(8))[0]
 		return self.read_pipe.read(nb_bytes)
 
 	def say_hello(self):
 		# being polite can't make things worse
-		self.send_bytes(b'hello')
+	#	self.send_bytes(b'hello')
+		pass
+
+class 
 
 log = Log()
 pipes = PipeReaderWriter(READ_PIPE_NAME, WRITE_PIPE_NAME)

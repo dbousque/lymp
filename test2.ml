@@ -3,9 +3,28 @@
 let read_pipe_name = "my_named_pipe"
 let write_pipe_name = "my_named_pipe2"
 
-let options = {
-	pyroot: "."
-}
+let pycall_raw serialize deserialize py mod_name func_name args =
+
+
+let pycall py mod_name func_name args =
+	let ret_bson = pycall_raw py mod_name func_name args in
+
+
+class pymodule py mod_name =
+	object
+		val _py = py
+		val _name = mod_name
+
+	method call =
+		pycall _py _name 
+
+class py read_pipe write_pipe =
+	object (self)
+		val _read_pipe = read_pipe
+		val _write_pipe = write_pipe
+
+	method get_module mod_name =
+		pymodule self mod_name
 
 type pipe = {
 	name: str ;
@@ -49,9 +68,9 @@ let create_process () =
 	let (in_c, out_c) = Unix.open_process "python3 test2.py" in
 	()
 
-let init () =
+let init pyroot =
 	create_pipe read_pipe_name ;
 	create_pipe write_pipe_name ;
 	create_process () ;
 	let (read_pipe, write_pipe) = get_pipes read_pipe_name write_pipe_name in
-	communicate read_pipe write_pipe process_stdout
+	py read_pipe write_pipe
