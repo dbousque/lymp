@@ -1,0 +1,2 @@
+ocamlbuild -use-ocamlfind -pkgs bson -libs unix pyml_test.d.byte
+OCAMLRUNPARAM="b"  ./pyml_test.d.byte
