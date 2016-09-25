@@ -35,7 +35,7 @@ let int64_to_bytes i =
 let bytes_to_int bytes nb =
 	let rec _to_int bytes ind nb ret =
 		let tmp = Char.code (Bytes.get bytes ind) in
-		match ind - nb with
+		match nb - ind - 1 with
 		| 0 -> ret * 256 + tmp
 		| _ -> _to_int bytes (ind + 1) nb (ret * 256 + tmp)
 	in
@@ -84,8 +84,8 @@ let pycall_raw py mod_name func_name args =
 	let bytes = Bson.encode doc in
 	send_bytes py bytes ;
 	let ret_bytes = get_bytes py in
-	let doc = Bson.decode bytes in
-	deserialize doc
+	let ret_doc = Bson.decode ret_bytes in
+	deserialize ret_doc
 
 let pycall py mod_name func_name args =
 	pycall_raw py mod_name func_name args 
@@ -124,7 +124,7 @@ let get_pipes name_read name_write =
 	({name = name_read ; fd = fd_read}, {name = name_write ; fd = fd_write})
 
 let create_process () =
-	let (in_c, out_c) = Unix.open_process "python3 test2.py" in
+	let (in_c, out_c) = Unix.open_process "python3 pyml.py" in
 	()
 
 let init pyroot =
