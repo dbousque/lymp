@@ -11,6 +11,11 @@ from random import randint
 def int_to_int64_bytes(i):
 	return pack('>q', i)
 
+def py_to_bson(val):
+	if type(val) is int:
+		return bson.int64.Int64(val)
+	return val
+
 class Log:
 
 	def __init__(self, filename="python_log"):
@@ -71,6 +76,8 @@ class ExecutionHandler:
 		# don't recursively call .loop, to avoid stack overflow
 		while True:
 			command_bytes = self.reader_writer.get_bytes()
+			if command_bytes == b'done':
+				exit(0)
 			instruction = bson.BSON.decode(command_bytes)
 			ret,is_ref = self.execute_instruction(instruction)
 			self.send_ret(ret, is_ref)
@@ -78,7 +85,7 @@ class ExecutionHandler:
 	def send_ret(self, ret, is_ref):
 		msg = {}
 		msg["t"] = self.to_ret_types[type(ret)]
-		msg["v"] = ret
+		msg["v"] = py_to_bson(ret)
 		msg = bytes(bson.BSON.encode(msg))
 		log.log(str(type(msg)) + "\n")
 		log.log(str(msg))

@@ -8,28 +8,28 @@ ocamlfind ocamlc -c -package bson -o pyml.cmo pyml.ml # cached
 # Target: pyml_test.cmo, tags: { package(bson), byte, compile, extension:cmo, extension:ml, file:pyml_test.cmo, file:pyml_test.ml, implem, ocaml, quiet }
 ocamlfind ocamlc -c -package bson -o pyml_test.cmo pyml_test.ml
 + ocamlfind ocamlc -c -package bson -o pyml_test.cmo pyml_test.ml
-File "pyml_test.ml", line 10, characters 1-63:
+File "pyml_test.ml", line 21, characters 1-291:
 Warning 8: this pattern-matching is not exhaustive.
 Here is an example of a value that is not matched:
 (Pynone|Pyint _|Pylist _)
-File "pyml_test.ml", line 7, characters 1-218:
+File "pyml_test.ml", line 18, characters 1-446:
 Warning 8: this pattern-matching is not exhaustive.
 Here is an example of a value that is not matched:
 (Pynone|Pyint _|Pylist _)
-File "pyml_test.ml", line 9, characters 5-18:
+File "pyml_test.ml", line 20, characters 5-18:
 Warning 26: unused variable page_content2.
 # Target: pyml_test.d.cmo, tags: { package(bson), byte, compile, debug, extension:cmo, extension:ml, file:pyml_test.d.cmo, file:pyml_test.ml, implem, ocaml, quiet }
 ocamlfind ocamlc -c -g -package bson -o pyml_test.d.cmo pyml_test.ml
 + ocamlfind ocamlc -c -g -package bson -o pyml_test.d.cmo pyml_test.ml
-File "pyml_test.ml", line 10, characters 1-63:
+File "pyml_test.ml", line 21, characters 1-291:
 Warning 8: this pattern-matching is not exhaustive.
 Here is an example of a value that is not matched:
 (Pynone|Pyint _|Pylist _)
-File "pyml_test.ml", line 7, characters 1-218:
+File "pyml_test.ml", line 18, characters 1-446:
 Warning 8: this pattern-matching is not exhaustive.
 Here is an example of a value that is not matched:
 (Pynone|Pyint _|Pylist _)
-File "pyml_test.ml", line 9, characters 5-18:
+File "pyml_test.ml", line 20, characters 5-18:
 Warning 26: unused variable page_content2.
 # Target: pyml.d.cmo, tags: { package(bson), byte, compile, debug, extension:cmo, extension:ml, file:pyml.d.cmo, file:pyml.ml, implem, ocaml, quiet }
 ocamlfind ocamlc -c -g -package bson -o pyml.d.cmo pyml.ml # cached

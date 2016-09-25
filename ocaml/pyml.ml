@@ -15,6 +15,7 @@ type pipe = {
 }
 
 exception Unknown_return_type of string
+exception Wrong_Pytype
 
 let compose f g x = f (g x)
 
@@ -96,13 +97,27 @@ class pymodule py mod_name =
 		val _name = mod_name
 
 		method call =
-			pycall _py _name 
+			pycall _py _name
+
+		method get_string func_name args =
+			let ret = pycall _py _name func_name args in
+			match ret with
+				| Pystr str -> str
+				| _ -> raise Wrong_Pytype
+
+		method get_int func_name args =
+			let ret = pycall _py _name func_name args in
+			match ret with
+				| Pyint i -> i
+				| _ -> raise Wrong_Pytype
 	end
 
-class py read_pipe write_pipe =
+class py read_pipe write_pipe process_in process_out =
 	object (self)
 		val _read_pipe = read_pipe
 		val _write_pipe = write_pipe
+		val _process_in = process_in
+		val _process_out = process_out
 
 		method get_module mod_name =
 			new pymodule self mod_name
@@ -110,6 +125,10 @@ class py read_pipe write_pipe =
 		method get_read_pipe = _read_pipe
 
 		method get_write_pipe = _write_pipe
+
+		method close = 
+			send_bytes self "done" ;
+			ignore (Unix.close_process (_process_in, _process_out))
 	end
 
 let create_pipe name =
@@ -124,12 +143,11 @@ let get_pipes name_read name_write =
 	({name = name_read ; fd = fd_read}, {name = name_write ; fd = fd_write})
 
 let create_process () =
-	let (in_c, out_c) = Unix.open_process "python3 pyml.py" in
-	()
+	Unix.open_process "python3 pyml.py"
 
 let init pyroot =
 	create_pipe read_pipe_name ;
 	create_pipe write_pipe_name ;
-	create_process () ;
-	let (read_pipe, write_pipe) = get_pipes read_pipe_name write_pipe_name in
-	new py read_pipe write_pipe
+	let process_in, process_out = create_process () in
+	let read_pipe, write_pipe = get_pipes read_pipe_name write_pipe_name in
+	new py read_pipe write_pipe process_in process_out
