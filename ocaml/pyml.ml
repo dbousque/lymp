@@ -1,23 +1,37 @@
 
 
-let read_pipe_name = "my_named_pipe"
-let write_pipe_name = "my_named_pipe2"
+let read_pipe_name = ".pyml_to_ocaml"
+let write_pipe_name = ".pyml_to_python"
 
-type pyobj =
-	Pystr of string
-	| Pyint of int
-	| Pylist of pyobj list
-	| Pynone
+exception Unknown_return_type of string
+exception Wrong_Pytype
+
+
+(* TYPES *)
 
 type pipe = {
 	name: string ;
 	fd: Unix.file_descr ;
 }
 
-exception Unknown_return_type of string
-exception Wrong_Pytype
+type pycommunication = {
+	read_pipe: pipe;
+	write_pipe: pipe ;
+	process_in: in_channel ;
+	process_out: out_channel ;
+}
 
-let compose f g x = f (g x)
+type pymodule = (pycommunication * string)
+
+type pyobj =
+	Pystr of string
+	| Pyint of int
+	| Pylist of pyobj list
+	| Pyfloat of float
+	| Pynone
+
+
+(* SERIALIZATION / DESERIALIZATION *)
 
 let int64_mod i n =
 	Int64.sub i (Int64.mul (Int64.div i (Int64.of_int n)) (Int64.of_int n))
@@ -44,16 +58,18 @@ let bytes_to_int bytes nb =
 
 let send_bytes py bytes =
 	let len = Int64.of_int (String.length bytes) in
-	ignore (Unix.write py#get_write_pipe.fd (int64_to_bytes len) 0 8) ;
-	ignore (Unix.write py#get_write_pipe.fd bytes 0 (String.length bytes))
+	ignore (Unix.write py.write_pipe.fd (int64_to_bytes len) 0 8) ;
+	ignore (Unix.write py.write_pipe.fd bytes 0 (String.length bytes))
 
 let get_bytes py =
 	let len = Bytes.make 8 (Char.chr 0) in
-	ignore (Unix.read py#get_read_pipe.fd len 0 8) ;
+	ignore (Unix.read py.read_pipe.fd len 0 8) ;
 	let to_read = bytes_to_int len 8 in
 	let ret_bytes = Bytes.make to_read (Char.chr 0) in
-	ignore (Unix.read py#get_read_pipe.fd ret_bytes 0 to_read) ;
+	ignore (Unix.read py.read_pipe.fd ret_bytes 0 to_read) ;
 	ret_bytes
+
+let compose f g x = f (g x)
 
 let rec deserialize_list lst =
 	List.map (compose deserialize Bson.get_doc_element) lst
@@ -64,6 +80,7 @@ and deserialize doc =
 	| "s" -> Pystr (Bson.get_string element)
 	| "i" -> Pyint (Int64.to_int (Bson.get_int64 element))
 	| "l" -> Pylist (deserialize_list (Bson.get_list element))
+	| "f" -> Pyfloat (Bson.get_double element)
 	| "n" -> Pynone
 	| n -> raise (Unknown_return_type n)
 
@@ -74,7 +91,31 @@ and serialize = function
 	| Pystr str -> Bson.create_string str
 	| Pyint i -> Bson.create_int64 (Int64.of_int i)
 	| Pylist lst -> serialize_list lst
+	| Pyfloat f -> Bson.create_double f
 	| Pynone -> Bson.create_null ()
+
+
+(* COMMUNICATION UTILS *)
+
+let create_pipe name =
+	try Unix.mkfifo name 0o777 with
+		| Unix.Unix_error _ -> ignore ()
+
+let get_pipes name_read name_write =
+	(* set O_SYNC to have synchronous (unbuffered) communication,
+	   so we don't have to flush, maybe O_DSYNC instead ? *)
+	let fd_read = Unix.openfile name_read [Unix.O_RDONLY; Unix.O_SYNC] 0o777 in
+	let fd_write = Unix.openfile name_write [Unix.O_WRONLY; Unix.O_SYNC] 0o777 in
+	({name = name_read ; fd = fd_read}, {name = name_write ; fd = fd_write})
+
+let create_process exec =
+	Unix.open_process (exec ^ " pyml.py")
+
+
+(* INTERFACE *)
+
+let get_module py mod_name =
+	(py, mod_name)
 
 let pycall_raw py mod_name func_name args =
 	let doc = Bson.empty in
@@ -88,66 +129,44 @@ let pycall_raw py mod_name func_name args =
 	let ret_doc = Bson.decode ret_bytes in
 	deserialize ret_doc
 
-let pycall py mod_name func_name args =
-	pycall_raw py mod_name func_name args 
+let get modul func args =
+	pycall_raw (fst modul) (snd modul) func args
 
-class pymodule py mod_name =
-	object
-		val _py = py
-		val _name = mod_name
+let call modul func args =
+	ignore (get modul func args)
 
-		method call =
-			pycall _py _name
+let get_string modul func args =
+	match get modul func args with
+	| Pystr s -> s
+	| _ -> raise Wrong_Pytype
 
-		method get_string func_name args =
-			let ret = pycall _py _name func_name args in
-			match ret with
-				| Pystr str -> str
-				| _ -> raise Wrong_Pytype
+let get_int modul func args =
+	match get modul func args with
+	| Pyint i -> i
+	| _ -> raise Wrong_Pytype
 
-		method get_int func_name args =
-			let ret = pycall _py _name func_name args in
-			match ret with
-				| Pyint i -> i
-				| _ -> raise Wrong_Pytype
-	end
+let get_float modul func args =
+	match get modul func args with
+	| Pyfloat f -> f
+	| _ -> raise Wrong_Pytype
 
-class py read_pipe write_pipe process_in process_out =
-	object (self)
-		val _read_pipe = read_pipe
-		val _write_pipe = write_pipe
-		val _process_in = process_in
-		val _process_out = process_out
+let get_list modul func args =
+	match get modul func args with
+	| Pylist l -> l
+	| _ -> raise Wrong_Pytype
 
-		method get_module mod_name =
-			new pymodule self mod_name
+let close py =
+	send_bytes py "done" ;
+	ignore (Unix.close_process (py.process_in, py.process_out))
 
-		method get_read_pipe = _read_pipe
-
-		method get_write_pipe = _write_pipe
-
-		method close = 
-			send_bytes self "done" ;
-			ignore (Unix.close_process (_process_in, _process_out))
-	end
-
-let create_pipe name =
-	try Unix.mkfifo name 0o777 with
-		| Unix.Unix_error _ -> ignore ()
-
-let get_pipes name_read name_write =
-	(* set O_SYNC to have synchronous (unbuffered) communication,
-	   so we don't have to flush, maybe O_DSYNC instead ? *)
-	let fd_read = Unix.openfile name_read [Unix.O_RDONLY; Unix.O_SYNC] 0o777 in
-	let fd_write = Unix.openfile name_write [Unix.O_WRONLY; Unix.O_SYNC] 0o777 in
-	({name = name_read ; fd = fd_read}, {name = name_write ; fd = fd_write})
-
-let create_process () =
-	Unix.open_process "python3 pyml.py"
-
-let init pyroot =
+let init ?(exec="python3") pyroot =
 	create_pipe read_pipe_name ;
 	create_pipe write_pipe_name ;
-	let process_in, process_out = create_process () in
+	let process_in, process_out = create_process exec in
 	let read_pipe, write_pipe = get_pipes read_pipe_name write_pipe_name in
-	new py read_pipe write_pipe process_in process_out
+	{
+		read_pipe = read_pipe ;
+		write_pipe = write_pipe ;
+		process_in = process_in ;
+		process_out = process_out
+	}

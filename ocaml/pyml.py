@@ -1,7 +1,7 @@
 
 
-READ_PIPE_NAME = "my_named_pipe2"
-WRITE_PIPE_NAME = "my_named_pipe"
+READ_PIPE_NAME = ".pyml_to_python"
+WRITE_PIPE_NAME = ".pyml_to_ocaml"
 
 from time import time
 from struct import pack, unpack
@@ -16,7 +16,7 @@ def py_to_bson(val):
 		return bson.int64.Int64(val)
 	return val
 
-class Log:
+"""class Log:
 
 	def __init__(self, filename="python_log"):
 		self.file = open(filename, "w")
@@ -25,7 +25,7 @@ class Log:
 		self.file.write(msg)
 
 	def close(self):
-		self.file.close()
+		self.file.close()"""
 
 # a communication class, could be implemented using other ipc methods,
 # it only needs the methods 'send_bytes' and 'get_bytes'
@@ -64,6 +64,7 @@ class ExecutionHandler:
 		int: "i",
 		list: "l",
 		str: "s",
+		float: "f",
 		type(None): "n"
 	}
 
@@ -84,19 +85,30 @@ class ExecutionHandler:
 
 	def send_ret(self, ret, is_ref):
 		msg = {}
-		msg["t"] = self.to_ret_types[type(ret)]
-		msg["v"] = py_to_bson(ret)
+		if is_ref:
+			msg["t"] = "r"
+			msg["v"] = py_to_bson(ret)
+		else:
+			msg["t"] = self.to_ret_types[type(ret)]
+			msg["v"] = py_to_bson(ret)
 		msg = bytes(bson.BSON.encode(msg))
-		log.log(str(type(msg)) + "\n")
-		log.log(str(msg))
-		log.file.flush()
+		#log.log(str(type(msg)) + "\n")
+		#log.log(str(msg))
+		#log.file.flush()
 		self.reader_writer.send_bytes(msg)
 
 	def execute_instruction(self, instruction):
-		if instruction["m"] not in self.modules:
-			__import__(instruction["m"])
-			self.modules[instruction["m"]] = sys.modules[instruction["m"]]
-		module = self.modules[instruction["m"]]
+		if "r" in instruction:
+			module = self.objs[instruction["r"]]
+			# if we were asked to return the reference
+			# (might fail in case the object is not supported)
+			if "g" in instruction:
+				return module, False
+		else:
+			if instruction["m"] not in self.modules:
+				__import__(instruction["m"])
+				self.modules[instruction["m"]] = sys.modules[instruction["m"]]
+			module = self.modules[instruction["m"]]
 		func = getattr(module, instruction["f"])
 		args = instruction["a"]
 		ret = func(*args)
@@ -108,7 +120,7 @@ class ExecutionHandler:
 		self.objs[rand] = ret
 		return rand,True
 
-log = Log()
-pipes = PipeReaderWriter(READ_PIPE_NAME, WRITE_PIPE_NAME)
-handler = ExecutionHandler(pipes)
+# log = Log()
+communication = PipeReaderWriter(READ_PIPE_NAME, WRITE_PIPE_NAME)
+handler = ExecutionHandler(communication)
 handler.loop()

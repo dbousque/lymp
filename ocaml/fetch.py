@@ -9,4 +9,6 @@ def phantom_fetch(url):
 	return "PHANTOM FETCHED IT"
 
 def random_int():
-	return randint(0, 100)
+	print("ok")
+	return 1
+	#return randint(0, 100)
