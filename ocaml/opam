@@ -1,0 +1,15 @@
+opam-version: "1.2"
+name: "pyml"
+version: "0.1"
+maintainer: "Dominik Bousquet <bousquet.dominik@gmail.com>"
+authors: "Dominik Bousquet <bousquet.dominik@gmail.com>"
+homepage: "https://github.com/dbousque/pyml"
+bug-reports: "https://github.com/dbousque/pyml/issues"
+license: "MIT"
+dev-repo: "https://github.com/dbousque/pyml"
+build: [
+	[make "build"]
+	[make "install"]
+]
+remove: ["ocamlfind" "remove" "pyml"]
+depends: ["ocamlfind" "ocamlbuild" "bson"]
