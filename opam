@@ -10,5 +10,6 @@ dev-repo: "https://github.com/dbousque/pyml"
 build: [
 	[make "install"]
 ]
+install: [make "install"]
 remove: ["ocamlfind" "remove" "pyml"]
 depends: ["ocamlfind" "ocamlbuild" "bson"]
