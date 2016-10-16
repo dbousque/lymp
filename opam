@@ -8,7 +8,6 @@ bug-reports: "https://github.com/dbousque/pyml/issues"
 license: "MIT"
 dev-repo: "https://github.com/dbousque/pyml"
 build: [
-	[make "build"]
 	[make "install"]
 ]
 remove: ["ocamlfind" "remove" "pyml"]
