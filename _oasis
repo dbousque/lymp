@@ -1,0 +1,13 @@
+OASISFormat: 0.3
+Name:        pyml
+Version:     0.1
+Synopsis:    Use Python functions and objects from OCaml
+Authors:     Dominik Bousquet
+License:     MIT
+Plugins:     META (0.3)
+
+Library pyml
+  Path:          srcs
+  BuildTools:    ocamlbuild
+  BuildDepends:  bson, unix
+  Modules:       Pyml

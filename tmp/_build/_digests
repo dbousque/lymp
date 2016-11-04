@@ -1,0 +1,5 @@
+"Rule: ocaml: cmx* & o* -> native (%=test2 )": "\201-Z\026[\135\142\164y\163\215\2467\136\181\138"
+"Resource: /Users/machd/ocaml_projects/pyml/tmp/test2.ml": "\224u\221\012y\251!\243\172\184\207i%\247\177\203"
+"Rule: ocaml: ml -> cmo & cmi (%=test2 )": "\1704!tB\131\148O\170n\155\192\219\teH"
+"Rule: ocaml: ml & cmi -> cmx & o (%=test2 )": "\246}x^}\237\005 q\003N\230xU\024\130"
+"Rule: ocaml dependencies ml (%=test2 )": "#u\146\234\171\216E\022\187J\165G\017W\153-"

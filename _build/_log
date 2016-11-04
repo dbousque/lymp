@@ -1,0 +1,18 @@
+### Starting build.
+# Target: srcs/pyml.mli.depends, tags: { annot, bin_annot, debug, extension:mli, file:srcs/pyml.mli, ocaml, ocamldep, pkg_bson, pkg_unix, quiet, traverse }
+/Users/machd/.opam/system/bin/ocamlfind ocamldep -package bson -package unix -modules srcs/pyml.mli > srcs/pyml.mli.depends
+# Target: srcs/pyml.cmi, tags: { annot, bin_annot, byte, compile, debug, extension:mli, file:srcs/pyml.mli, interf, ocaml, pkg_bson, pkg_unix, quiet, traverse }
+/Users/machd/.opam/system/bin/ocamlfind ocamlc -c -g -annot -bin-annot -package bson -package unix -I srcs -o srcs/pyml.cmi srcs/pyml.mli
+# Target: srcs/pyml.ml.depends, tags: { annot, bin_annot, debug, extension:ml, file:srcs/pyml.ml, ocaml, ocamldep, pkg_bson, pkg_unix, quiet, traverse }
+/Users/machd/.opam/system/bin/ocamlfind ocamldep -package bson -package unix -modules srcs/pyml.ml > srcs/pyml.ml.depends
+# Target: srcs/pyml.cmo, tags: { annot, bin_annot, byte, compile, debug, extension:cmo, extension:ml, file:srcs/pyml.cmo, file:srcs/pyml.ml, implem, ocaml, pkg_bson, pkg_unix, quiet, traverse }
+/Users/machd/.opam/system/bin/ocamlfind ocamlc -c -g -annot -bin-annot -package bson -package unix -I srcs -o srcs/pyml.cmo srcs/pyml.ml
+# Target: srcs/pyml.cma, tags: { annot, bin_annot, byte, debug, extension:cma, file:srcs/pyml.cma, library, link, ocaml, quiet, traverse }
+/Users/machd/.opam/system/bin/ocamlfind ocamlc -a srcs/pyml.cmo -o srcs/pyml.cma
+# Target: srcs/pyml.cmx, tags: { annot, bin_annot, compile, debug, extension:cmx, extension:ml, file:srcs/pyml.cmx, file:srcs/pyml.ml, implem, native, ocaml, pkg_bson, pkg_unix, quiet, traverse }
+/Users/machd/.opam/system/bin/ocamlfind ocamlopt -c -g -annot -bin-annot -package bson -package unix -I srcs -o srcs/pyml.cmx srcs/pyml.ml
+# Target: srcs/pyml.cmxa, tags: { annot, bin_annot, debug, extension:cmxa, file:srcs/pyml.cmxa, library, link, native, ocaml, quiet, traverse }
+/Users/machd/.opam/system/bin/ocamlfind ocamlopt -a srcs/pyml.cmx -o srcs/pyml.cmxa
+# Target: srcs/pyml.cmxs, tags: { annot, bin_annot, debug, extension:cmxs, file:srcs/pyml.cmxs, library, link, native, ocaml, quiet, shared, traverse, use_pyml }
+/Users/machd/.opam/system/bin/ocamlfind ocamlopt -shared srcs/pyml.cmxa srcs/pyml.cmx -o srcs/pyml.cmxs
+# Compilation successful.

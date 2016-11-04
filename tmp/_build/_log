@@ -1,0 +1,10 @@
+### Starting build.
+# Target: test2.ml.depends, tags: { package(pyml), extension:ml, file:test2.ml, ocaml, ocamldep, quiet }
+ocamlfind ocamldep -package pyml -modules test2.ml > test2.ml.depends
+# Target: test2.cmo, tags: { package(pyml), byte, compile, extension:cmo, extension:ml, file:test2.cmo, file:test2.ml, implem, ocaml, quiet }
+ocamlfind ocamlc -c -package pyml -o test2.cmo test2.ml
+# Target: test2.cmx, tags: { package(pyml), compile, extension:cmx, extension:ml, file:test2.cmx, file:test2.ml, implem, native, ocaml, quiet }
+ocamlfind ocamlopt -c -package pyml -o test2.cmx test2.ml
+# Target: test2.native, tags: { package(pyml), dont_link_with, extension:native, file:test2.native, link, native, ocaml, program, quiet }
+ocamlfind ocamlopt -linkpkg -package pyml test2.cmx -o test2.native
+# Compilation successful.
