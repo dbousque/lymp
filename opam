@@ -6,10 +6,10 @@ authors: "Dominik Bousquet <bousquet.dominik@gmail.com>"
 homepage: "https://github.com/dbousque/pyml"
 bug-reports: "https://github.com/dbousque/pyml/issues"
 license: "MIT"
-dev-repo: "https://github.com/dbousque/pyml"
+dev-repo: "https://github.com/dbousque/pyml.git"
 build: [
+	[make "build"]
 	[make "install"]
 ]
-install: [make "install"]
 remove: ["ocamlfind" "remove" "pyml"]
 depends: ["ocamlfind" "ocamlbuild" "bson"]

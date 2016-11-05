@@ -1,27 +1,31 @@
 
 
+(* set ocamlfind_ready to false if your ocamlfind is unable to find the package,
+   pyml.py will be assumed to be in the current directory *)
+let ocamlfind_ready = true
 let read_pipe_name = ".pyml_to_ocaml"
 let write_pipe_name = ".pyml_to_python"
 
 exception Unknown_return_type of string
 exception Wrong_Pytype
+exception Could_not_create_pipe
 
 
 (* TYPES *)
 
 type pipe = {
-	name: string ;
+	path: string ;
 	fd: Unix.file_descr ;
 }
 
 type pycommunication = {
-	read_pipe: pipe;
+	read_pipe: pipe ;
 	write_pipe: pipe ;
 	process_in: in_channel ;
 	process_out: out_channel ;
 }
 
-type pymodule = (pycommunication * string)
+type pymodule = pycommunication * string
 
 type pyobj =
 	Pystr of string
@@ -97,19 +101,33 @@ and serialize = function
 
 (* COMMUNICATION UTILS *)
 
-let create_pipe name =
-	try Unix.mkfifo name 0o777 with
-		| Unix.Unix_error _ -> ignore ()
+let get_random_characters () =
+	String.init 10 (fun i -> Char.chr (Random.int 26 + Char.code 'a'))
 
-let get_pipes name_read name_write =
+let rec create_pipe path =
+	let rand_path = path ^ (get_random_characters ()) in
+	if Sys.file_exists rand_path then create_pipe path
+	else (
+		(try Unix.mkfifo rand_path 0o777 with
+			| Unix.Unix_error _ -> raise Could_not_create_pipe) ;
+		rand_path
+	)
+
+let get_pipes path_read path_write =
 	(* set O_SYNC to have synchronous (unbuffered) communication,
 	   so we don't have to flush, maybe O_DSYNC instead ? *)
-	let fd_read = Unix.openfile name_read [Unix.O_RDONLY; Unix.O_SYNC] 0o777 in
-	let fd_write = Unix.openfile name_write [Unix.O_WRONLY; Unix.O_SYNC] 0o777 in
-	({name = name_read ; fd = fd_read}, {name = name_write ; fd = fd_write})
+	let fd_read = Unix.openfile path_read [Unix.O_RDONLY; Unix.O_SYNC] 0o777 in
+	let fd_write = Unix.openfile path_write [Unix.O_WRONLY; Unix.O_SYNC] 0o777 in
+	({path = path_read ; fd = fd_read}, {path = path_write ; fd = fd_write})
 
-let create_process exec =
-	Unix.open_process (exec ^ " pyml.py")
+let create_process exec pyroot =
+	let path = (
+		if ocamlfind_ready then
+			"`ocamlfind query pyml`" ^ Filename.dir_sep
+		else
+			""
+	) in 
+	Unix.open_process (exec ^ " " ^ path ^ "pyml.py " ^ pyroot)
 
 
 (* INTERFACE *)
@@ -157,13 +175,18 @@ let get_list modul func args =
 
 let close py =
 	send_bytes py "done" ;
-	ignore (Unix.close_process (py.process_in, py.process_out))
+	ignore (Unix.close_process (py.process_in, py.process_out)) ;
+	Sys.remove py.read_pipe.path ;
+	Sys.remove py.write_pipe.path ;
 
 let init ?(exec="python3") pyroot =
-	create_pipe read_pipe_name ;
-	create_pipe write_pipe_name ;
-	let process_in, process_out = create_process exec in
-	let read_pipe, write_pipe = get_pipes read_pipe_name write_pipe_name in
+	Random.self_init () ;
+	let read_pipe_path = pyroot ^ Filename.dir_sep ^ read_pipe_name in
+	let write_pipe_path = pyroot ^ Filename.dir_sep ^ write_pipe_name in
+	let read_pipe_path = create_pipe read_pipe_path in
+	let write_pipe_path = create_pipe write_pipe_path in
+	let process_in, process_out = create_process exec pyroot in
+	let read_pipe, write_pipe = get_pipes read_pipe_path write_pipe_path in
 	{
 		read_pipe = read_pipe ;
 		write_pipe = write_pipe ;

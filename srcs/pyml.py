@@ -5,7 +5,7 @@ WRITE_PIPE_NAME = ".pyml_to_ocaml"
 
 from time import time
 from struct import pack, unpack
-import bson, sys
+import bson, sys, os
 from random import randint
 
 def int_to_int64_bytes(i):
@@ -121,6 +121,9 @@ class ExecutionHandler:
 		return rand,True
 
 # log = Log()
+if len(sys.argv > 1):
+	os.chdir(sys.argv[1])
+	print("Current dir : " + sys.argv[1])
 communication = PipeReaderWriter(READ_PIPE_NAME, WRITE_PIPE_NAME)
 handler = ExecutionHandler(communication)
 handler.loop()
