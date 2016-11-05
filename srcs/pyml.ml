@@ -127,7 +127,7 @@ let create_process exec pyroot read_pipe_path write_pipe_path =
 		else
 			""
 	) in 
-	Unix.open_process (exec ^ " " ^ path ^ "pyml.py " ^ pyroot ^ read_pipe_path write_pipe_path)
+	Unix.open_process (exec ^ " " ^ path ^ "pyml.py " ^ pyroot ^ " " ^ read_pipe_path ^ " " ^ write_pipe_path)
 
 
 (* INTERFACE *)
