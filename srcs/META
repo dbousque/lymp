@@ -1,0 +1,12 @@
+# OASIS_START
+# DO NOT EDIT (digest: b70bf396b68d0fcf0f136813b1b97bc7)
+version = "0.1"
+description = "Use Python functions and objects from OCaml"
+requires = "bson unix"
+archive(byte) = "pyml.cma"
+archive(byte, plugin) = "pyml.cma"
+archive(native) = "pyml.cmxa"
+archive(native, plugin) = "pyml.cmxs"
+exists_if = "pyml.cma"
+# OASIS_STOP
+
