@@ -177,7 +177,7 @@ let close py =
 	send_bytes py "done" ;
 	ignore (Unix.close_process (py.process_in, py.process_out)) ;
 	Sys.remove py.read_pipe.path ;
-	Sys.remove py.write_pipe.path ;
+	Sys.remove py.write_pipe.path
 
 let init ?(exec="python3") pyroot =
 	Random.self_init () ;
