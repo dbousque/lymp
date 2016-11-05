@@ -117,12 +117,14 @@ class ExecutionHandler:
 		self.objs[rand] = ret
 		return rand,True
 
-# log = Log()
+log = Log()
 working_directory = sys.argv[1]
 read_pipe_path = sys.argv[2]
 write_pipe_path = sys.argv[3]
 os.chdir(sys.argv[1])
-print("Current dir : " + sys.argv[1])
+log.log("Current dir : " + sys.argv[1] + "\n")
+log.log(read_pipe_path + "\n")
+log.log(write_pipe_path + "\n")
 communication = PipeReaderWriter(read_pipe_path, write_pipe_path)
 handler = ExecutionHandler(communication)
 handler.loop()

@@ -126,8 +126,12 @@ let create_process exec pyroot read_pipe_path write_pipe_path =
 			"`ocamlfind query pyml`" ^ Filename.dir_sep
 		else
 			""
-	) in 
-	Unix.open_process (exec ^ " " ^ path ^ "pyml.py " ^ pyroot ^ " " ^ read_pipe_path ^ " " ^ write_pipe_path)
+	) in
+	let command = exec ^ " " ^ path ^ "pyml.py " in
+	let command = command ^ "$(cd " ^ pyroot ^ " ; pwd) " in
+	let command = command ^ "$(cd " ^ pyroot ^ " ; pwd)/" ^ read_pipe_path ^ " " in
+	let command = command ^ "$(cd " ^ pyroot ^ " ; pwd)/" ^ write_pipe_path in
+	Unix.open_process (command)
 
 
 (* INTERFACE *)
