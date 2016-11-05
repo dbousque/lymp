@@ -13,7 +13,7 @@ def py_to_bson(val):
 		return bson.int64.Int64(val)
 	return val
 
-"""class Log:
+class Log:
 
 	def __init__(self, filename="python_log"):
 		self.file = open(filename, "w")
@@ -22,7 +22,7 @@ def py_to_bson(val):
 		self.file.write(msg)
 
 	def close(self):
-		self.file.close()"""
+		self.file.close()
 
 # a communication class, could be implemented using other ipc methods,
 # it only needs the methods 'send_bytes' and 'get_bytes'
