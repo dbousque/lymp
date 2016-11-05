@@ -120,14 +120,14 @@ let get_pipes path_read path_write =
 	let fd_write = Unix.openfile path_write [Unix.O_WRONLY; Unix.O_SYNC] 0o777 in
 	({path = path_read ; fd = fd_read}, {path = path_write ; fd = fd_write})
 
-let create_process exec pyroot =
+let create_process exec pyroot read_pipe_path write_pipe_path =
 	let path = (
 		if ocamlfind_ready then
 			"`ocamlfind query pyml`" ^ Filename.dir_sep
 		else
 			""
 	) in 
-	Unix.open_process (exec ^ " " ^ path ^ "pyml.py " ^ pyroot)
+	Unix.open_process (exec ^ " " ^ path ^ "pyml.py " ^ pyroot ^ read_pipe_path write_pipe_path)
 
 
 (* INTERFACE *)
@@ -185,7 +185,7 @@ let init ?(exec="python3") pyroot =
 	let write_pipe_path = pyroot ^ Filename.dir_sep ^ write_pipe_name in
 	let read_pipe_path = create_pipe read_pipe_path in
 	let write_pipe_path = create_pipe write_pipe_path in
-	let process_in, process_out = create_process exec pyroot in
+	let process_in, process_out = create_process exec pyroot read_pipe_path write_pipe_path in
 	let read_pipe, write_pipe = get_pipes read_pipe_path write_pipe_path in
 	{
 		read_pipe = read_pipe ;

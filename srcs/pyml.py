@@ -1,8 +1,5 @@
 
 
-READ_PIPE_NAME = ".pyml_to_python"
-WRITE_PIPE_NAME = ".pyml_to_ocaml"
-
 from time import time
 from struct import pack, unpack
 import bson, sys, os
@@ -121,9 +118,11 @@ class ExecutionHandler:
 		return rand,True
 
 # log = Log()
-if len(sys.argv > 1):
-	os.chdir(sys.argv[1])
-	print("Current dir : " + sys.argv[1])
-communication = PipeReaderWriter(READ_PIPE_NAME, WRITE_PIPE_NAME)
+working_directory = sys.argv[1]
+read_pipe_path = sys.argv[2]
+write_pipe_path = sys.argv[3]
+os.chdir(sys.argv[1])
+print("Current dir : " + sys.argv[1])
+communication = PipeReaderWriter(read_pipe_path, write_pipe_path)
 handler = ExecutionHandler(communication)
 handler.loop()
