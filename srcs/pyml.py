@@ -13,17 +13,6 @@ def py_to_bson(val):
 		return bson.int64.Int64(val)
 	return val
 
-class Log:
-
-	def __init__(self, filename="python_log"):
-		self.file = open(filename, "w")
-
-	def log(self, msg):
-		self.file.write(msg)
-
-	def close(self):
-		self.file.close()
-
 # a communication class, could be implemented using other ipc methods,
 # it only needs the methods 'send_bytes' and 'get_bytes'
 class PipeReaderWriter:
@@ -75,9 +64,13 @@ class ExecutionHandler:
 		while True:
 			command_bytes = self.reader_writer.get_bytes()
 			if command_bytes == b'done':
+				# closing 'python_log'
+				sys.stdout.close()
 				exit(0)
 			instruction = bson.BSON.decode(command_bytes)
 			ret,is_ref = self.execute_instruction(instruction)
+			# data may still be in the buffer
+			sys.stdout.flush()
 			self.send_ret(ret, is_ref)
 
 	def send_ret(self, ret, is_ref):
@@ -89,9 +82,6 @@ class ExecutionHandler:
 			msg["t"] = self.to_ret_types[type(ret)]
 			msg["v"] = py_to_bson(ret)
 		msg = bytes(bson.BSON.encode(msg))
-		#log.log(str(type(msg)) + "\n")
-		#log.log(str(msg))
-		#log.file.flush()
 		self.reader_writer.send_bytes(msg)
 
 	def execute_instruction(self, instruction):
@@ -117,14 +107,14 @@ class ExecutionHandler:
 		self.objs[rand] = ret
 		return rand,True
 
-log = Log()
 working_directory = sys.argv[1]
-read_pipe_path = sys.argv[2]
-write_pipe_path = sys.argv[3]
-os.chdir(sys.argv[1])
-log.log("Current dir : " + sys.argv[1] + "\n")
-log.log(read_pipe_path + "\n")
-log.log(write_pipe_path + "\n")
+write_pipe_path = sys.argv[2]
+read_pipe_path = sys.argv[3]
+# changing dir
+os.chdir(working_directory)
+sys.path.insert(0, working_directory)
+# redirect stdout to 'python_log'
+sys.stdout = open('python_log', 'w')
 communication = PipeReaderWriter(read_pipe_path, write_pipe_path)
 handler = ExecutionHandler(communication)
 handler.loop()

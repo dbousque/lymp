@@ -22,4 +22,4 @@ val get_float : pymodule -> string -> pyobj list -> float
 val get_list : pymodule -> string -> pyobj list -> pyobj list
 
 val close : pycommunication -> unit
-val init : ?exec:string -> string -> pycommunication
+val init : ?exec:string -> ?ocamlfind:bool -> ?pymlpy_dirpath:string -> string -> pycommunication

@@ -1,8 +1,5 @@
 
 
-(* set ocamlfind_ready to false if your ocamlfind is unable to find the package,
-   pyml.py will be assumed to be in the current directory *)
-let ocamlfind_ready = true
 let read_pipe_name = ".pyml_to_ocaml"
 let write_pipe_name = ".pyml_to_python"
 
@@ -104,13 +101,14 @@ and serialize = function
 let get_random_characters () =
 	String.init 10 (fun i -> Char.chr (Random.int 26 + Char.code 'a'))
 
-let rec create_pipe path =
-	let rand_path = path ^ (get_random_characters ()) in
-	if Sys.file_exists rand_path then create_pipe path
+let rec create_pipe path name =
+	let rand_name = get_random_characters () in
+	let rand_path = (path ^ rand_name) in
+	if Sys.file_exists rand_path then create_pipe path name
 	else (
 		(try Unix.mkfifo rand_path 0o777 with
 			| Unix.Unix_error _ -> raise Could_not_create_pipe) ;
-		rand_path
+		name ^ rand_name
 	)
 
 let get_pipes path_read path_write =
@@ -120,17 +118,17 @@ let get_pipes path_read path_write =
 	let fd_write = Unix.openfile path_write [Unix.O_WRONLY; Unix.O_SYNC] 0o777 in
 	({path = path_read ; fd = fd_read}, {path = path_write ; fd = fd_write})
 
-let create_process exec pyroot read_pipe_path write_pipe_path =
+let create_process exec pyroot ocamlfind_ready pymlpy_dirpath read_pipe_name write_pipe_name =
 	let path = (
 		if ocamlfind_ready then
 			"`ocamlfind query pyml`" ^ Filename.dir_sep
 		else
-			""
+			pymlpy_dirpath ^ Filename.dir_sep
 	) in
 	let command = exec ^ " " ^ path ^ "pyml.py " in
 	let command = command ^ "$(cd " ^ pyroot ^ " ; pwd) " in
-	let command = command ^ "$(cd " ^ pyroot ^ " ; pwd)/" ^ read_pipe_path ^ " " in
-	let command = command ^ "$(cd " ^ pyroot ^ " ; pwd)/" ^ write_pipe_path in
+	let command = command ^ "$(cd " ^ pyroot ^ " ; pwd)" ^ Filename.dir_sep ^ read_pipe_name ^ " " in
+	let command = command ^ "$(cd " ^ pyroot ^ " ; pwd)" ^ Filename.dir_sep ^ write_pipe_name in
 	Unix.open_process (command)
 
 
@@ -183,14 +181,16 @@ let close py =
 	Sys.remove py.read_pipe.path ;
 	Sys.remove py.write_pipe.path
 
-let init ?(exec="python3") pyroot =
+(* set ocamlfind to false if your ocamlfind is unable to find the package,
+   pyml.py will be assumed to be in pymlpy_dirpath *)
+let init ?(exec="python3") ?(ocamlfind=true) ?(pymlpy_dirpath=".") pyroot =
 	Random.self_init () ;
 	let read_pipe_path = pyroot ^ Filename.dir_sep ^ read_pipe_name in
 	let write_pipe_path = pyroot ^ Filename.dir_sep ^ write_pipe_name in
-	let read_pipe_path = create_pipe read_pipe_path in
-	let write_pipe_path = create_pipe write_pipe_path in
-	let process_in, process_out = create_process exec pyroot read_pipe_path write_pipe_path in
-	let read_pipe, write_pipe = get_pipes read_pipe_path write_pipe_path in
+	let read_pipe_randname = create_pipe read_pipe_path read_pipe_name in
+	let write_pipe_randname = create_pipe write_pipe_path write_pipe_name in
+	let process_in, process_out = create_process exec pyroot ocamlfind pymlpy_dirpath read_pipe_randname write_pipe_randname in
+	let read_pipe, write_pipe = get_pipes (pyroot ^ Filename.dir_sep ^ read_pipe_randname) (pyroot ^ Filename.dir_sep ^ write_pipe_randname) in
 	{
 		read_pipe = read_pipe ;
 		write_pipe = write_pipe ;
