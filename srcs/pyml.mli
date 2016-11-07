@@ -1,14 +1,23 @@
 
 
+exception Unknown_return_type of string
+exception Wrong_Pytype
+exception Could_not_create_pipe
+
 type pycommunication
 
 type pymodule
+
+type pyref
 
 type pyobj =
 	Pystr of string
 	| Pyint of int
 	| Pylist of pyobj list
 	| Pyfloat of float
+	| Pybool of bool
+	| Pybytes of Bytes.t
+	| Pyref of pyref
 	| Pynone
 
 val get_module : pycommunication -> string -> pymodule

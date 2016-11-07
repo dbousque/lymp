@@ -24,11 +24,16 @@ type pycommunication = {
 
 type pymodule = pycommunication * string
 
+type pyref = int
+
 type pyobj =
 	Pystr of string
 	| Pyint of int
 	| Pylist of pyobj list
 	| Pyfloat of float
+	| Pybool of bool
+	| Pybytes of Bytes.t
+	| Pyref of pyref
 	| Pynone
 
 
@@ -82,6 +87,9 @@ and deserialize doc =
 	| "i" -> Pyint (Int64.to_int (Bson.get_int64 element))
 	| "l" -> Pylist (deserialize_list (Bson.get_list element))
 	| "f" -> Pyfloat (Bson.get_double element)
+	| "b" -> Pybool (Bson.get_boolean element)
+	| "B" -> Pybytes (Bson.get_user_binary element)
+	| "r" -> Pyref (int_of_string (Bson.get_jscode element))
 	| "n" -> Pynone
 	| n -> raise (Unknown_return_type n)
 
@@ -93,6 +101,9 @@ and serialize = function
 	| Pyint i -> Bson.create_int64 (Int64.of_int i)
 	| Pylist lst -> serialize_list lst
 	| Pyfloat f -> Bson.create_double f
+	| Pybool b -> Bson.create_boolean b
+	| Pybytes b -> Bson.create_user_binary b
+	| Pyref r -> Bson.create_jscode (string_of_int r)
 	| Pynone -> Bson.create_null ()
 
 
@@ -106,7 +117,7 @@ let rec create_pipe path name =
 	let rand_path = (path ^ rand_name) in
 	if Sys.file_exists rand_path then create_pipe path name
 	else (
-		(try Unix.mkfifo rand_path 0o777 with
+		(try Unix.mkfifo rand_path 0o600 with
 			| Unix.Unix_error _ -> raise Could_not_create_pipe) ;
 		name ^ rand_name
 	)
@@ -114,8 +125,8 @@ let rec create_pipe path name =
 let get_pipes path_read path_write =
 	(* set O_SYNC to have synchronous (unbuffered) communication,
 	   so we don't have to flush, maybe O_DSYNC instead ? *)
-	let fd_read = Unix.openfile path_read [Unix.O_RDONLY; Unix.O_SYNC] 0o777 in
-	let fd_write = Unix.openfile path_write [Unix.O_WRONLY; Unix.O_SYNC] 0o777 in
+	let fd_read = Unix.openfile path_read [Unix.O_RDONLY; Unix.O_SYNC] 0o600 in
+	let fd_write = Unix.openfile path_write [Unix.O_WRONLY; Unix.O_SYNC] 0o600 in
 	({path = path_read ; fd = fd_read}, {path = path_write ; fd = fd_write})
 
 let create_process exec pyroot ocamlfind_ready pymlpy_dirpath read_pipe_name write_pipe_name =

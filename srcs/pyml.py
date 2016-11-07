@@ -51,13 +51,16 @@ class ExecutionHandler:
 		list: "l",
 		str: "s",
 		float: "f",
-		type(None): "n"
+		type(None): "n",
+		bool: "b",
+		bytes: "B"
 	}
 
 	def __init__(self, reader_writer):
 		self.reader_writer = reader_writer
 		self.modules = {}
 		self.objs = {}
+		self.ref_nb = 0
 
 	def loop(self):
 		# don't recursively call .loop, to avoid stack overflow
@@ -68,16 +71,19 @@ class ExecutionHandler:
 				sys.stdout.close()
 				exit(0)
 			instruction = bson.BSON.decode(command_bytes)
-			ret,is_ref = self.execute_instruction(instruction)
+			ret = self.execute_instruction(instruction)
 			# data may still be in the buffer
 			sys.stdout.flush()
-			self.send_ret(ret, is_ref)
+			self.send_ret(ret)
 
-	def send_ret(self, ret, is_ref):
+	def send_ret(self, ret):
 		msg = {}
-		if is_ref:
+		# reference
+		if type(ret) not in self.to_ret_types:
+			self.ref_nb += 1
+			self.objs[self.ref_nb] = ret
 			msg["t"] = "r"
-			msg["v"] = py_to_bson(ret)
+			msg["v"] = bson.code.Code(str(self.ref_nb))
 		else:
 			msg["t"] = self.to_ret_types[type(ret)]
 			msg["v"] = py_to_bson(ret)
@@ -86,11 +92,12 @@ class ExecutionHandler:
 
 	def execute_instruction(self, instruction):
 		if "r" in instruction:
+			# module is the object referenced, later we call getattr to get the method called
 			module = self.objs[instruction["r"]]
 			# if we were asked to return the reference
 			# (might fail in case the object is not supported)
 			if "g" in instruction:
-				return module, False
+				return module
 		else:
 			if instruction["m"] not in self.modules:
 				__import__(instruction["m"])
@@ -98,14 +105,12 @@ class ExecutionHandler:
 			module = self.modules[instruction["m"]]
 		func = getattr(module, instruction["f"])
 		args = instruction["a"]
+		# resolve reference args
+		for i,arg in enumerate(args):
+			if type(arg) is bson.code.Code:
+				args[i] = self.objs[int(arg)]
 		ret = func(*args)
-		if type(ret) in self.to_ret_types:
-			return ret,False
-		rand = randint(0, 20000000)
-		while rand in self.objs:
-			rand = randint(0, 20000000)
-		self.objs[rand] = ret
-		return rand,True
+		return ret
 
 working_directory = sys.argv[1]
 write_pipe_path = sys.argv[2]
