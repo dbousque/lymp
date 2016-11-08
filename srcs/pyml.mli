@@ -16,7 +16,7 @@ type pyobj =
 	| Pylist of pyobj list
 	| Pyfloat of float
 	| Pybool of bool
-	| Pybytes of Bytes.t
+	| Pybytes of bytes
 	| Pyref of pyref
 	| Pynone
 

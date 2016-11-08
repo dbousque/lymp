@@ -3,7 +3,7 @@
 (* TESTING PYREF AND WRONGTYPE EXCEPTION *)
 
 let ocamlfind_ok = (try (Sys.getenv "OCAMLFIND_OK" ; true) with | _ -> false)
-let py = if ocamlfind_ok then Pyml.init "." else Pyml.init ~ocamlfind:false ~pymlpy_dirpath:"srcs" "."
+let py = if ocamlfind_ok then Pyml.init "." else Pyml.init ~exec:"python3" ~ocamlfind:false ~pymlpy_dirpath:"srcs" "."
 let modul = Pyml.get_module py "modul"
 
 let file_lines filename =
@@ -12,9 +12,10 @@ let file_lines filename =
 	try
 		while true; do
 			lines := input_line chan :: !lines
-		done; !lines
+		done ;
+		!lines
 	with End_of_file ->
-		close_in chan;
+		close_in chan ;
 		List.rev !lines
 
 let rec check_lines lines expected_lines =
@@ -39,6 +40,9 @@ let () =
 	Pyml.call modul "print_arg" [Pyml.Pystr "salut"] ;
 	Pyml.call modul "print_arg" [Pyml.Pyint 42] ;
 	Pyml.call modul "print_arg" [Pyml.Pyfloat 42.42] ;
+	Pyml.call modul "print_arg" [Pyml.Pybool true] ;
+	Pyml.call modul "print_arg" [Pyml.Pybytes "some bytes"] ;
+	Pyml.call modul "print_arg" [Pyml.get modul "ret_unicode" []] ;
 	Pyml.call modul "print_arg" [Pyml.get modul "rand_str" []] ;
 	(* equivalent of modul.print_arg(modul.first_of_tuple(tuple)) : *)
 	Pyml.call modul "print_arg" [Pyml.get modul "first_of_tuple" [tuple]] ;
@@ -50,6 +54,9 @@ let () =
 		salut
 		42
 		42.42
+		True
+		b'some bytes'
+		saluté
 		alright, inside python
 		salut les gars
 		1
@@ -61,6 +68,9 @@ let () =
 		"salut" ;
 		"42" ;
 		"42.42" ;
+		"True" ;
+		"b'some bytes'" ;
+		"saluté" ;
 		"alright, inside python" ;
 		"salut les gars" ;
 		"1"

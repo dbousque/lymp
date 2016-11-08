@@ -1,4 +1,4 @@
-
+# coding: utf-8
 import bson
 
 def rand_str():
@@ -16,3 +16,6 @@ def first_of_tuple(arg):
 
 def print_arg(arg):
 	print(arg)
+
+def ret_unicode():
+	return u'saluté'

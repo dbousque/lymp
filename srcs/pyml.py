@@ -2,7 +2,7 @@
 
 from time import time
 from struct import pack, unpack
-import bson, sys, os
+import bson, sys, os, codecs
 from random import randint
 
 def int_to_int64_bytes(i):
@@ -19,7 +19,6 @@ class PipeReaderWriter:
 
 	def __init__(self, read_pipe_name, write_pipe_name):
 		self.get_pipes(read_pipe_name, write_pipe_name)
-		self.say_hello()
 
 	def get_pipes(self, read_pipe_name, write_pipe_name):
 		# order of open matters, since it is blocking, should match OCaml order
@@ -39,11 +38,6 @@ class PipeReaderWriter:
 		nb_bytes = unpack('>q', self.read_pipe.read(8))[0]
 		return self.read_pipe.read(nb_bytes)
 
-	def say_hello(self):
-		# being polite can't make things worse
-	#	self.send_bytes(b'hello')
-		pass
-
 class ExecutionHandler:
 
 	to_ret_types = {
@@ -55,6 +49,9 @@ class ExecutionHandler:
 		bool: "b",
 		bytes: "B"
 	}
+	# for python 2, unicode is str
+	if sys.version_info.major == 2:
+		to_ret_types[unicode] = "s"
 
 	def __init__(self, reader_writer):
 		self.reader_writer = reader_writer
@@ -70,7 +67,7 @@ class ExecutionHandler:
 				# closing 'python_log'
 				sys.stdout.close()
 				exit(0)
-			instruction = bson.BSON.decode(command_bytes)
+			instruction = bson.BSON.decode(bson.BSON(command_bytes))
 			ret = self.execute_instruction(instruction)
 			# data may still be in the buffer
 			sys.stdout.flush()
@@ -78,6 +75,9 @@ class ExecutionHandler:
 
 	def send_ret(self, ret):
 		msg = {}
+		# if python 2 and type is str, convert to unicode and send as string (assume utf-8)
+		if sys.version_info.major == 2 and type(ret) is str:
+			ret = ret.decode('utf-8')
 		# reference
 		if type(ret) not in self.to_ret_types:
 			self.ref_nb += 1
@@ -95,7 +95,6 @@ class ExecutionHandler:
 			# module is the object referenced, later we call getattr to get the method called
 			module = self.objs[instruction["r"]]
 			# if we were asked to return the reference
-			# (might fail in case the object is not supported)
 			if "g" in instruction:
 				return module
 		else:
@@ -105,10 +104,16 @@ class ExecutionHandler:
 			module = self.modules[instruction["m"]]
 		func = getattr(module, instruction["f"])
 		args = instruction["a"]
-		# resolve reference args
 		for i,arg in enumerate(args):
+			# resolve reference args (using bson jscode)
 			if type(arg) is bson.code.Code:
 				args[i] = self.objs[int(arg)]
+			# for python2, if arg is str, convert to unicode
+			if sys.version_info.major == 2 and type(arg) is str:
+				args[i] = args[i].decode('utf-8')
+			# for python2, if arg is bytes, convert to str
+			if sys.version_info.major == 2 and type(arg) is bson.binary.Binary:
+				args[i] = str(arg)
 		ret = func(*args)
 		return ret
 
@@ -119,7 +124,7 @@ read_pipe_path = sys.argv[3]
 os.chdir(working_directory)
 sys.path.insert(0, working_directory)
 # redirect stdout to 'python_log'
-sys.stdout = open('python_log', 'w')
+sys.stdout = codecs.open('python_log', 'w', encoding='utf-8')
 communication = PipeReaderWriter(read_pipe_path, write_pipe_path)
 handler = ExecutionHandler(communication)
 handler.loop()
