@@ -75,6 +75,9 @@ class ExecutionHandler:
 
 	def send_ret(self, ret):
 		msg = {}
+		# if ret is a tuple. convert it to a list
+		if type(ret) is tuple:
+			ret = list(ret)
 		# if python 2 and type is str, convert to unicode and send as string (assume utf-8)
 		if sys.version_info.major == 2 and type(ret) is str:
 			ret = ret.decode('utf-8')
@@ -108,10 +111,10 @@ class ExecutionHandler:
 			# resolve reference args (using bson jscode)
 			if type(arg) is bson.code.Code:
 				args[i] = self.objs[int(arg)]
-			# for python2, if arg is str, convert to unicode
+			# for python 2, if arg is str, convert to unicode
 			if sys.version_info.major == 2 and type(arg) is str:
 				args[i] = args[i].decode('utf-8')
-			# for python2, if arg is bytes, convert to str
+			# for python 2, if arg is bytes, convert to str
 			if sys.version_info.major == 2 and type(arg) is bson.binary.Binary:
 				args[i] = str(arg)
 		ret = func(*args)
