@@ -9,3 +9,6 @@ class Fetch:
 		if mode == "phantom":
 			return "<html><p>Hi from phantom</p></html>"
 		return "<html><p>Hi</p></html>"
+
+	def ret_self(self):
+		return self

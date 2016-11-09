@@ -209,6 +209,11 @@ let get_list callable func args =
 	| Pylist l -> l
 	| _ -> raise Wrong_Pytype
 
+let attr callable name =
+	match callable with
+	| Pymodule (py, name) -> py_call_raw py true false (Bson.create_string name) func args
+	| Pyreference (py, ref_nb) -> py_call_raw py false false (Bson.create_int64 (Int64.of_int ref_nb)) func args
+
 let dereference r =
 	match r with
 	| Pymodule (py, name) -> raise Expected_reference_not_module
