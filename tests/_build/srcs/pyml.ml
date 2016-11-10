@@ -93,6 +93,7 @@ and deserialize py doc =
 	| "B" -> Pybytes (Bson.get_user_binary element)
 	| "r" -> Pyref (Pyreference (py, (int_of_string (Bson.get_jscode element))))
 	| "n" -> Pynone
+	| "e" -> raise Pyexception
 	| n -> raise (Unknown_return_type n)
 
 let rec serialize_list lst =
@@ -148,12 +149,13 @@ let create_process exec pyroot ocamlfind_ready pymlpy_dirpath read_pipe_name wri
 
 (* CALL *)
 
-let py_call_raw py modul dereference mod_or_ref_bytes func_name args =
+let py_call_raw py modul dereference get_attr mod_or_ref_bytes func_name args =
 	let doc = Bson.empty in
 	let lst = serialize_list args in
 	let doc = Bson.add_element "a" lst doc in
 	let doc = Bson.add_element (if modul then "m" else "r") mod_or_ref_bytes doc in
 	let doc = Bson.add_element (if dereference then "g" else "f") (Bson.create_string func_name) doc in
+	let doc = if get_attr then (Bson.add_element "t" (Bson.create_string "") doc) else doc in
 	let bytes = Bson.encode doc in
 	send_bytes py bytes ;
 	let ret_bytes = get_bytes py in
@@ -168,8 +170,8 @@ let get_module py mod_name =
 
 let get callable func args =
 	match callable with
-	| Pymodule (py, name) -> py_call_raw py true false (Bson.create_string name) func args
-	| Pyreference (py, ref_nb) -> py_call_raw py false false (Bson.create_int64 (Int64.of_int ref_nb)) func args
+	| Pymodule (py, name) -> py_call_raw py true false false (Bson.create_string name) func args
+	| Pyreference (py, ref_nb) -> py_call_raw py false false false (Bson.create_int64 (Int64.of_int ref_nb)) func args
 
 let call callable func args =
 	ignore (get callable func args)
@@ -209,10 +211,55 @@ let get_list callable func args =
 	| Pylist l -> l
 	| _ -> raise Wrong_Pytype
 
+let attr callable name =
+	match callable with
+	| Pymodule (py, name) -> py_call_raw py true false true (Bson.create_string name) "" []
+	| Pyreference (py, ref_nb) -> py_call_raw py false false true (Bson.create_int64 (Int64.of_int ref_nb)) "" []
+
+let attr_string callable name =
+	match attr callable name with
+	| Pystr s -> s
+	| _ -> raise Wrong_Pytype
+
+let attr_int callable name =
+	match attr callable name with
+	| Pyint i -> i
+	| _ -> raise Wrong_Pytype
+
+let attr_float callable name =
+	match attr callable name with
+	| Pyfloat f -> f
+	| _ -> raise Wrong_Pytype
+
+let attr_bool callable name =
+	match attr callable name with
+	| Pybool b -> b
+	| _ -> raise Wrong_Pytype
+
+let attr_bytes callable name =
+	match attr callable name with
+	| Pybytes b -> b
+	| _ -> raise Wrong_Pytype
+
+let attr_bool callable name =
+	match attr callable name with
+	| Pybool b -> b
+	| _ -> raise Wrong_Pytype
+
+let attr_ref callable name =
+	match attr callable name with
+	| Pyref r -> r
+	| _ -> raise Wrong_Pytype
+
+let attr_list callable name =
+	match attr callable name with
+	| Pylist l -> l
+	| _ -> raise Wrong_Pytype
+
 let dereference r =
 	match r with
 	| Pymodule (py, name) -> raise Expected_reference_not_module
-	| Pyreference (py, ref_nb) -> py_call_raw py false true (Bson.create_int64 (Int64.of_int ref_nb)) "" []
+	| Pyreference (py, ref_nb) -> py_call_raw py false true false (Bson.create_int64 (Int64.of_int ref_nb)) "" []
 
 let close py =
 	send_bytes py "done" ;

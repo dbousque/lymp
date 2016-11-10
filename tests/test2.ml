@@ -28,9 +28,10 @@ let rec check_lines lines expected_lines =
 let () =
 	ignore (try (Pyml.get_string modul "get_tuple" [])
 	with Pyml.Wrong_Pytype -> "") ;
+	(* tuples are converted to lists *)
 	let tuple = Pyml.get modul "get_tuple" [] in
 	( match tuple with
-	| Pyml.Pyref p -> ()
+	| Pyml.Pylist l -> ()
 	| _ -> raise (Failure "failed")) ;
 
 	(* ASSERTING THAT PASSING PYREF AS ARGUMENT PASSES ACTUAL OBJECT *)
@@ -50,7 +51,7 @@ let () =
 	Pyml.close py ;
 
 	(* python_log should now be :
-		(1, 2)
+		[1, 2]
 		salut
 		42
 		42.42
@@ -64,7 +65,7 @@ let () =
 
 	let lines = file_lines "python_log" in
 	let expected_lines = [
-		"(1, 2)" ;
+		"[1, 2]" ;
 		"salut" ;
 		"42" ;
 		"42.42" ;

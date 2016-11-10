@@ -12,10 +12,7 @@ ocamldep.opt -modules srcs/pyml.ml > srcs/pyml.ml.depends
 # Target: srcs/pyml.cmx, tags: { compile, extension:cmx, extension:ml, file:srcs/pyml.cmx, file:srcs/pyml.ml, implem, native, ocaml, quiet }
 ocamlopt.opt -c -I /Users/dodo/.opam/system/lib/bson -I srcs -o srcs/pyml.cmx srcs/pyml.ml
 # Target: test2.cmx, tags: { compile, extension:cmx, extension:ml, file:test2.cmx, file:test2.ml, implem, native, ocaml, quiet }
-ocamlopt.opt -c -I /Users/dodo/.opam/system/lib/bson -I srcs -o test2.cmx test2.ml
-+ ocamlopt.opt -c -I /Users/dodo/.opam/system/lib/bson -I srcs -o test2.cmx test2.ml
-File "test2.ml", line 5, characters 25-50:
-Warning 10: this expression should have type unit.
+ocamlopt.opt -c -I /Users/dodo/.opam/system/lib/bson -I srcs -o test2.cmx test2.ml # cached
 # Target: test2.native, tags: { dont_link_with, extension:native, file:test2.native, link, native, ocaml, program, quiet }
 ocamlopt.opt unix.cmxa -I /Users/dodo/.opam/system/lib/bson /Users/dodo/.opam/system/lib/bson/bson.cmxa srcs/pyml.cmx test2.cmx -o test2.native
 # Compilation successful.

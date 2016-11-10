@@ -4,6 +4,7 @@ from time import time
 from struct import pack, unpack
 import bson, sys, os, codecs
 from random import randint
+from traceback import print_exc
 
 def int_to_int64_bytes(i):
 	return pack('>q', i)
@@ -12,6 +13,11 @@ def py_to_bson(val):
 	if type(val) is int:
 		return bson.int64.Int64(val)
 	return val
+
+def exit_pyml():
+	# closing 'python_log'
+	sys.stdout.close()
+	exit(0)
 
 # a communication class, could be implemented using other ipc methods,
 # it only needs the methods 'send_bytes' and 'get_bytes'
@@ -35,7 +41,11 @@ class PipeReaderWriter:
 
 	def get_bytes(self):
 		# '>q' to force signed 8 bytes integer
-		nb_bytes = unpack('>q', self.read_pipe.read(8))[0]
+		try:
+			nb_bytes = unpack('>q', self.read_pipe.read(8))[0]
+		except:
+			# ocaml process has been terminated
+			exit_pyml()
 		return self.read_pipe.read(nb_bytes)
 
 class ExecutionHandler:
@@ -64,16 +74,21 @@ class ExecutionHandler:
 		while True:
 			command_bytes = self.reader_writer.get_bytes()
 			if command_bytes == b'done':
-				# closing 'python_log'
-				sys.stdout.close()
-				exit(0)
+				exit_pyml()
 			instruction = bson.BSON.decode(bson.BSON(command_bytes))
-			ret = self.execute_instruction(instruction)
-			# data may still be in the buffer
-			sys.stdout.flush()
-			self.send_ret(ret)
+			try:
+				ret = self.execute_instruction(instruction)
+				# data may still be in the buffer
+				sys.stdout.flush()
+				self.send_ret(ret)
+			except BaseException as e:
+				# exception whilst executing, inform ocaml side
+				print_exc()
+				# data may still be in the buffer
+				sys.stdout.flush()
+				self.send_ret("", exception=True)
 
-	def send_ret(self, ret):
+	def ret_to_msg(self, ret):
 		msg = {}
 		# if ret is a tuple. convert it to a list
 		if type(ret) is tuple:
@@ -89,7 +104,22 @@ class ExecutionHandler:
 			msg["v"] = bson.code.Code(str(self.ref_nb))
 		else:
 			msg["t"] = self.to_ret_types[type(ret)]
-			msg["v"] = py_to_bson(ret)
+			# if type is list, further resolve
+			if type(ret) is list:
+				msg["v"] = []
+				for elt in ret:
+					msg["v"].append(self.ret_to_msg(elt))
+			else:
+				msg["v"] = py_to_bson(ret)
+		return msg
+
+	def send_ret(self, ret, exception=False):
+		if exception:
+			msg = {}
+			msg["t"] = "e"
+			msg["v"] = ""
+		else:
+			msg = self.ret_to_msg(ret)
 		msg = bytes(bson.BSON.encode(msg))
 		self.reader_writer.send_bytes(msg)
 
@@ -105,7 +135,10 @@ class ExecutionHandler:
 				__import__(instruction["m"])
 				self.modules[instruction["m"]] = sys.modules[instruction["m"]]
 			module = self.modules[instruction["m"]]
-		func = getattr(module, instruction["f"])
+		func_or_attr = getattr(module, instruction["f"])
+		# get attribute
+		if "t" in instruction:
+			return func_or_attr
 		args = instruction["a"]
 		for i,arg in enumerate(args):
 			# resolve reference args (using bson jscode)
@@ -117,7 +150,7 @@ class ExecutionHandler:
 			# for python 2, if arg is bytes, convert to str
 			if sys.version_info.major == 2 and type(arg) is bson.binary.Binary:
 				args[i] = str(arg)
-		ret = func(*args)
+		ret = func_or_attr(*args)
 		return ret
 
 working_directory = sys.argv[1]

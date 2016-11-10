@@ -6,11 +6,13 @@ exception Expected_reference_not_module
 exception Could_not_create_pipe
 exception Pyexception
 
+(* information enabling communication with the python process *)
 type pycommunication
 
 (* pycallable can be a module or a reference *)
 type pycallable
 
+(* arguments passed to python functions must be of type pyobj *)
 type pyobj =
 	Pystr of string
 	| Pyint of int
