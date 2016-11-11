@@ -1,7 +1,7 @@
 
 
-let read_pipe_name = ".pyml_to_ocaml"
-let write_pipe_name = ".pyml_to_python"
+let read_pipe_name = ".lymp_to_ocaml"
+let write_pipe_name = ".lymp_to_python"
 
 exception Unknown_return_type of string
 exception Wrong_Pytype
@@ -79,8 +79,9 @@ let get_bytes py =
 
 let compose f g x = f (g x)
 
+(* Bson.decode reverses lists, so use rev_map *)
 let rec deserialize_list py lst =
-	List.map (compose (deserialize py) Bson.get_doc_element) lst
+	List.rev_map (compose (deserialize py) Bson.get_doc_element) lst
 
 and deserialize py doc =
 	let element = Bson.get_element "v" doc in
@@ -96,8 +97,9 @@ and deserialize py doc =
 	| "e" -> raise Pyexception
 	| n -> raise (Unknown_return_type n)
 
+(* Bson.encode reverses lists, so use rev_map *)
 let rec serialize_list lst =
-	Bson.create_list (List.map serialize lst)
+	Bson.create_list (List.rev_map serialize lst)
 
 and serialize = function
 	| Pystr str -> Bson.create_string str
@@ -133,14 +135,14 @@ let get_pipes path_read path_write =
 	let fd_write = Unix.openfile path_write [Unix.O_WRONLY; Unix.O_SYNC] 0o600 in
 	({path = path_read ; fd = fd_read}, {path = path_write ; fd = fd_write})
 
-let create_process exec pyroot ocamlfind_ready pymlpy_dirpath read_pipe_name write_pipe_name =
+let create_process exec pyroot ocamlfind_ready lymppy_dirpath read_pipe_name write_pipe_name =
 	let path = (
 		if ocamlfind_ready then
-			"`ocamlfind query pyml`" ^ Filename.dir_sep
+			"`ocamlfind query lymp`" ^ Filename.dir_sep
 		else
-			pymlpy_dirpath ^ Filename.dir_sep
+			lymppy_dirpath ^ Filename.dir_sep
 	) in
-	let command = exec ^ " " ^ path ^ "pyml.py " in
+	let command = exec ^ " " ^ path ^ "lymp.py " in
 	let command = command ^ "$(cd " ^ pyroot ^ " ; pwd) " in
 	let command = command ^ "$(cd " ^ pyroot ^ " ; pwd)" ^ Filename.dir_sep ^ read_pipe_name ^ " " in
 	let command = command ^ "$(cd " ^ pyroot ^ " ; pwd)" ^ Filename.dir_sep ^ write_pipe_name in
@@ -149,13 +151,14 @@ let create_process exec pyroot ocamlfind_ready pymlpy_dirpath read_pipe_name wri
 
 (* CALL *)
 
-let py_call_raw py modul dereference get_attr mod_or_ref_bytes func_name args =
+let py_call_raw py modul dereference get_attr ret_ref mod_or_ref_bytes func_name args =
 	let doc = Bson.empty in
 	let lst = serialize_list args in
 	let doc = Bson.add_element "a" lst doc in
 	let doc = Bson.add_element (if modul then "m" else "r") mod_or_ref_bytes doc in
 	let doc = Bson.add_element (if dereference then "g" else "f") (Bson.create_string func_name) doc in
 	let doc = if get_attr then (Bson.add_element "t" (Bson.create_string "") doc) else doc in
+	let doc = if ret_ref then (Bson.add_element "R" (Bson.create_string "") doc) else doc in
 	let bytes = Bson.encode doc in
 	send_bytes py bytes ;
 	let ret_bytes = get_bytes py in
@@ -168,10 +171,13 @@ let py_call_raw py modul dereference get_attr mod_or_ref_bytes func_name args =
 let get_module py mod_name =
 	Pymodule (py, mod_name)
 
+let builtins py =
+	Pymodule (py, "builtins")
+
 let get callable func args =
 	match callable with
-	| Pymodule (py, name) -> py_call_raw py true false false (Bson.create_string name) func args
-	| Pyreference (py, ref_nb) -> py_call_raw py false false false (Bson.create_int64 (Int64.of_int ref_nb)) func args
+	| Pymodule (py, name) -> py_call_raw py true false false false (Bson.create_string name) func args
+	| Pyreference (py, ref_nb) -> py_call_raw py false false false false (Bson.create_int64 (Int64.of_int ref_nb)) func args
 
 let call callable func args =
 	ignore (get callable func args)
@@ -202,7 +208,12 @@ let get_bytes callable func args =
 	| _ -> raise Wrong_Pytype
 
 let get_ref callable func args =
-	match get callable func args with
+	let ret = (
+		match callable with
+		| Pymodule (py, name) -> py_call_raw py true false false true (Bson.create_string name) func args
+		| Pyreference (py, ref_nb) -> py_call_raw py false false false true (Bson.create_int64 (Int64.of_int ref_nb)) func args
+	) in
+	match ret with
 	| Pyref r -> r
 	| _ -> raise Wrong_Pytype
 
@@ -213,8 +224,8 @@ let get_list callable func args =
 
 let attr callable name =
 	match callable with
-	| Pymodule (py, name) -> py_call_raw py true false true (Bson.create_string name) "" []
-	| Pyreference (py, ref_nb) -> py_call_raw py false false true (Bson.create_int64 (Int64.of_int ref_nb)) "" []
+	| Pymodule (py, name) -> py_call_raw py true false true false (Bson.create_string name) name []
+	| Pyreference (py, ref_nb) -> py_call_raw py false false true false (Bson.create_int64 (Int64.of_int ref_nb)) name []
 
 let attr_string callable name =
 	match attr callable name with
@@ -241,13 +252,13 @@ let attr_bytes callable name =
 	| Pybytes b -> b
 	| _ -> raise Wrong_Pytype
 
-let attr_bool callable name =
-	match attr callable name with
-	| Pybool b -> b
-	| _ -> raise Wrong_Pytype
-
 let attr_ref callable name =
-	match attr callable name with
+	let ret = (
+		match callable with
+		| Pymodule (py, name) -> py_call_raw py true false true true (Bson.create_string name) name []
+		| Pyreference (py, ref_nb) -> py_call_raw py false false true true (Bson.create_int64 (Int64.of_int ref_nb)) name []
+	) in
+	match ret with
 	| Pyref r -> r
 	| _ -> raise Wrong_Pytype
 
@@ -259,7 +270,7 @@ let attr_list callable name =
 let dereference r =
 	match r with
 	| Pymodule (py, name) -> raise Expected_reference_not_module
-	| Pyreference (py, ref_nb) -> py_call_raw py false true false (Bson.create_int64 (Int64.of_int ref_nb)) "" []
+	| Pyreference (py, ref_nb) -> py_call_raw py false true false false (Bson.create_int64 (Int64.of_int ref_nb)) "" []
 
 let close py =
 	send_bytes py "done" ;
@@ -268,14 +279,14 @@ let close py =
 	Sys.remove py.write_pipe.path
 
 (* set ocamlfind to false if your ocamlfind is unable to find the package,
-   pyml.py will be assumed to be in pymlpy_dirpath *)
-let init ?(exec="python3") ?(ocamlfind=true) ?(pymlpy_dirpath=".") pyroot =
+   lymp.py will be assumed to be in lymppy_dirpath *)
+let init ?(exec="python3") ?(ocamlfind=true) ?(lymppy_dirpath=".") pyroot =
 	Random.self_init () ;
 	let read_pipe_path = pyroot ^ Filename.dir_sep ^ read_pipe_name in
 	let write_pipe_path = pyroot ^ Filename.dir_sep ^ write_pipe_name in
 	let read_pipe_randname = create_pipe read_pipe_path read_pipe_name in
 	let write_pipe_randname = create_pipe write_pipe_path write_pipe_name in
-	let process_in, process_out = create_process exec pyroot ocamlfind pymlpy_dirpath read_pipe_randname write_pipe_randname in
+	let process_in, process_out = create_process exec pyroot ocamlfind lymppy_dirpath read_pipe_randname write_pipe_randname in
 	let read_pipe, write_pipe = get_pipes (pyroot ^ Filename.dir_sep ^ read_pipe_randname) (pyroot ^ Filename.dir_sep ^ write_pipe_randname) in
 	{
 		read_pipe = read_pipe ;

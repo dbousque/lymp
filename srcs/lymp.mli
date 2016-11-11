@@ -25,7 +25,10 @@ type pyobj =
 
 val get_module : pycommunication -> string -> pycallable
 
-(* call functions and methods *)
+(* module givin access to builtins attributes and functions, such as 'print' *)
+val builtins : pycommunication -> pycallable
+
+(* call functions and methods of modules and objects *)
 val call : pycallable -> string -> pyobj list -> unit
 val get : pycallable -> string -> pyobj list -> pyobj
 val get_string : pycallable -> string -> pyobj list -> string
@@ -36,7 +39,7 @@ val get_bytes : pycallable -> string -> pyobj list -> bytes
 val get_ref : pycallable -> string -> pyobj list -> pycallable
 val get_list : pycallable -> string -> pyobj list -> pyobj list
 
-(* get attributes *)
+(* get attributes of modules and objects *)
 val attr : pycallable -> string -> pyobj
 val attr_string : pycallable -> string -> string
 val attr_int : pycallable -> string -> int
@@ -51,4 +54,4 @@ val attr_list : pycallable -> string -> pyobj list
 val dereference : pycallable -> pyobj
 
 val close : pycommunication -> unit
-val init : ?exec:string -> ?ocamlfind:bool -> ?pymlpy_dirpath:string -> string -> pycommunication
+val init : ?exec:string -> ?ocamlfind:bool -> ?lymppy_dirpath:string -> string -> pycommunication

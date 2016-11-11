@@ -17,7 +17,7 @@ all:
 
 install: setup.data
 	$(SETUP) -install $(INSTALLFLAGS)
-	cp srcs/pyml.py `ocamlfind query pyml`/
+	cp srcs/lymp.py `ocamlfind query lymp`/
 
 uninstall: setup.data
 	$(SETUP) -uninstall $(UNINSTALLFLAGS)

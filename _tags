@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 9597e9737d2a7b37852face5674664d0)
+# DO NOT EDIT (digest: 5790fb60881cb1e21946d2b9f8e8563e)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -14,8 +14,8 @@ true: annot, bin_annot
 ".git": not_hygienic
 "_darcs": -traverse
 "_darcs": not_hygienic
-# Library pyml
-"srcs/pyml.cmxs": use_pyml
+# Library lymp
+"srcs/lymp.cmxs": use_lymp
 <srcs/*.ml{,i,y}>: pkg_bson
 <srcs/*.ml{,i,y}>: pkg_unix
 # OASIS_STOP

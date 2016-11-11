@@ -12,10 +12,10 @@ Implementation
 Performance is very good for almost all use cases. On my setup the overhead associated with a function call is roughly 60 μs. You can launch the benchmark to see what the overhead is on yours.
 Performance could be improved by using other IPC methods, such as shared memory.
 
-lymp ?
+"lymp" ?
 
-`pyml` was already taken, and so were `ocpy` and `pyoc`, so I figured I would just mix letters.
+"pyml" was already taken, and so were "ocpy" and "pyoc", so I figured I would just mix letters.
 
 TODO
 
-If it matters to you, better support for Python exceptions could be implemented (currently, a Pyexception is raised). Also, better performance would be pretty easy to get. We could also add the option to log Python's stdout to OCaml's stdout (there would be some drawbacks but it might be worth it). If you have any suggestions, you are welcome to contact me or to make a pull request.
+If it matters to you, better support for Python exceptions could be implemented (currently, a Pyexception is raised). Also, better performance would be pretty easy to get. Support for dicts and named arguments could be added. We could also add the option to log Python's stdout to OCaml's stdout (there would be some drawbacks but it might be worth it). You are welcome to make pull requests and suggestions.

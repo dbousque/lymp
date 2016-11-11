@@ -3,8 +3,8 @@
 (* TESTING PYREF AND WRONGTYPE EXCEPTION *)
 
 let ocamlfind_ok = (try (Sys.getenv "OCAMLFIND_OK" ; true) with | _ -> false)
-let py = if ocamlfind_ok then Pyml.init "." else Pyml.init ~exec:"python3" ~ocamlfind:false ~pymlpy_dirpath:"srcs" "."
-let modul = Pyml.get_module py "modul"
+let py = if ocamlfind_ok then Lymp.init "." else Lymp.init ~exec:"python3" ~ocamlfind:false ~lymppy_dirpath:"srcs" "."
+let modul = Lymp.get_module py "modul"
 
 let file_lines filename =
 	let lines = ref [] in
@@ -26,29 +26,29 @@ let rec check_lines lines expected_lines =
 				 | l::rest_l -> if l <> e then raise (Failure "failed") else check_lines rest_l rest_e
 
 let () =
-	ignore (try (Pyml.get_string modul "get_tuple" [])
-	with Pyml.Wrong_Pytype -> "") ;
+	ignore (try (Lymp.get_string modul "get_tuple" [])
+	with Lymp.Wrong_Pytype -> "") ;
 	(* tuples are converted to lists *)
-	let tuple = Pyml.get modul "get_tuple" [] in
+	let tuple = Lymp.get modul "get_tuple" [] in
 	( match tuple with
-	| Pyml.Pylist l -> ()
+	| Lymp.Pylist l -> ()
 	| _ -> raise (Failure "failed")) ;
 
 	(* ASSERTING THAT PASSING PYREF AS ARGUMENT PASSES ACTUAL OBJECT *)
-	Pyml.call modul "print_tuple" [tuple] ;
+	Lymp.call modul "print_tuple" [tuple] ;
 
 	(* ASSERTING THAT GENERIC FUNCTIONS ACCEPTS ALL KINDS OF ARGUMENTS *)
-	Pyml.call modul "print_arg" [Pyml.Pystr "salut"] ;
-	Pyml.call modul "print_arg" [Pyml.Pyint 42] ;
-	Pyml.call modul "print_arg" [Pyml.Pyfloat 42.42] ;
-	Pyml.call modul "print_arg" [Pyml.Pybool true] ;
-	Pyml.call modul "print_arg" [Pyml.Pybytes "some bytes"] ;
-	Pyml.call modul "print_arg" [Pyml.get modul "ret_unicode" []] ;
-	Pyml.call modul "print_arg" [Pyml.get modul "rand_str" []] ;
+	Lymp.call modul "print_arg" [Lymp.Pystr "salut"] ;
+	Lymp.call modul "print_arg" [Lymp.Pyint 42] ;
+	Lymp.call modul "print_arg" [Lymp.Pyfloat 42.42] ;
+	Lymp.call modul "print_arg" [Lymp.Pybool true] ;
+	Lymp.call modul "print_arg" [Lymp.Pybytes "some bytes"] ;
+	Lymp.call modul "print_arg" [Lymp.get modul "ret_unicode" []] ;
+	Lymp.call modul "print_arg" [Lymp.get modul "rand_str" []] ;
 	(* equivalent of modul.print_arg(modul.first_of_tuple(tuple)) : *)
-	Pyml.call modul "print_arg" [Pyml.get modul "first_of_tuple" [tuple]] ;
+	Lymp.call modul "print_arg" [Lymp.get modul "first_of_tuple" [tuple]] ;
 
-	Pyml.close py ;
+	Lymp.close py ;
 
 	(* python_log should now be :
 		[1, 2]

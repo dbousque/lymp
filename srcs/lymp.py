@@ -14,7 +14,7 @@ def py_to_bson(val):
 		return bson.int64.Int64(val)
 	return val
 
-def exit_pyml():
+def exit_lymp():
 	# closing 'python_log'
 	sys.stdout.close()
 	exit(0)
@@ -45,7 +45,7 @@ class PipeReaderWriter:
 			nb_bytes = unpack('>q', self.read_pipe.read(8))[0]
 		except:
 			# ocaml process has been terminated
-			exit_pyml()
+			exit_lymp()
 		return self.read_pipe.read(nb_bytes)
 
 class ExecutionHandler:
@@ -74,13 +74,13 @@ class ExecutionHandler:
 		while True:
 			command_bytes = self.reader_writer.get_bytes()
 			if command_bytes == b'done':
-				exit_pyml()
+				exit_lymp()
 			instruction = bson.BSON.decode(bson.BSON(command_bytes))
 			try:
 				ret = self.execute_instruction(instruction)
 				# data may still be in the buffer
 				sys.stdout.flush()
-				self.send_ret(ret)
+				self.send_ret(ret, ret_ref=("R" in instruction))
 			except BaseException as e:
 				# exception whilst executing, inform ocaml side
 				print_exc()
@@ -88,7 +88,7 @@ class ExecutionHandler:
 				sys.stdout.flush()
 				self.send_ret("", exception=True)
 
-	def ret_to_msg(self, ret):
+	def ret_to_msg(self, ret, ret_ref):
 		msg = {}
 		# if ret is a tuple. convert it to a list
 		if type(ret) is tuple:
@@ -96,8 +96,8 @@ class ExecutionHandler:
 		# if python 2 and type is str, convert to unicode and send as string (assume utf-8)
 		if sys.version_info.major == 2 and type(ret) is str:
 			ret = ret.decode('utf-8')
-		# reference
-		if type(ret) not in self.to_ret_types:
+		# reference (type not supported or explicitely asked to)
+		if ret_ref or (type(ret) not in self.to_ret_types):
 			self.ref_nb += 1
 			self.objs[self.ref_nb] = ret
 			msg["t"] = "r"
@@ -108,18 +108,19 @@ class ExecutionHandler:
 			if type(ret) is list:
 				msg["v"] = []
 				for elt in ret:
-					msg["v"].append(self.ret_to_msg(elt))
+					# ret_ref is false here (would not be in the else otherwise)
+					msg["v"].append(self.ret_to_msg(elt, False))
 			else:
 				msg["v"] = py_to_bson(ret)
 		return msg
 
-	def send_ret(self, ret, exception=False):
+	def send_ret(self, ret, exception=False, ret_ref=False):
 		if exception:
 			msg = {}
 			msg["t"] = "e"
 			msg["v"] = ""
 		else:
-			msg = self.ret_to_msg(ret)
+			msg = self.ret_to_msg(ret, ret_ref)
 		msg = bytes(bson.BSON.encode(msg))
 		self.reader_writer.send_bytes(msg)
 
@@ -131,6 +132,9 @@ class ExecutionHandler:
 			if "g" in instruction:
 				return module
 		else:
+			# python 2 builtin module has a different name
+			if sys.version_info.major == 2 and instruction["m"] == "builtins":
+				instruction["m"] = "__builtin__"
 			if instruction["m"] not in self.modules:
 				__import__(instruction["m"])
 				self.modules[instruction["m"]] = sys.modules[instruction["m"]]
@@ -161,6 +165,7 @@ os.chdir(working_directory)
 sys.path.insert(0, working_directory)
 # redirect stdout to 'python_log'
 sys.stdout = codecs.open('python_log', 'w', encoding='utf-8')
+sys.stderr = sys.stdout
 communication = PipeReaderWriter(read_pipe_path, write_pipe_path)
 handler = ExecutionHandler(communication)
 handler.loop()
