@@ -127,6 +127,24 @@ class ExecutionHandler:
 		msg = bytes(bson.BSON.encode(msg))
 		self.reader_writer.send_bytes(msg)
 
+	def resolve_args(self, args):
+		for i,arg in enumerate(args):
+			# resolve reference args (using bson jscode)
+			if type(arg) is bson.code.Code:
+				args[i] = self.objs[int(arg)]
+			if type(arg) is bson.int64.Int64:
+				args[i] = int(arg)
+			# for python 2, if arg is str, convert to unicode
+			if sys.version_info.major == 2 and type(arg) is str:
+				args[i] = args[i].decode('utf-8')
+			# for python 2, if arg is bytes, convert to str
+			if sys.version_info.major == 2 and type(arg) is bson.binary.Binary:
+				args[i] = str(arg)
+			# if we have a list, we must recursively resolve
+			if type(arg) is list:
+				args[i] = self.resolve_args(arg)
+		return args
+
 	def execute_instruction(self, instruction):
 		if "r" in instruction:
 			# module is the object referenced, later we call getattr to get the method called
@@ -147,18 +165,7 @@ class ExecutionHandler:
 		if "t" in instruction:
 			return func_or_attr
 		args = instruction["a"]
-		for i,arg in enumerate(args):
-			# resolve reference args (using bson jscode)
-			if type(arg) is bson.code.Code:
-				args[i] = self.objs[int(arg)]
-			if type(arg) is bson.int64.Int64:
-				args[i] = int(arg)
-			# for python 2, if arg is str, convert to unicode
-			if sys.version_info.major == 2 and type(arg) is str:
-				args[i] = args[i].decode('utf-8')
-			# for python 2, if arg is bytes, convert to str
-			if sys.version_info.major == 2 and type(arg) is bson.binary.Binary:
-				args[i] = str(arg)
+		args = self.resolve_args(args)
 		ret = func_or_attr(*args)
 		return ret
 

@@ -27,7 +27,7 @@ let rec check_lines lines expected_lines =
 
 let () =
 	ignore (try (Lymp.get_string modul "get_tuple" [])
-	with Lymp.Wrong_Pytype -> "") ;
+	with Lymp.Wrong_Pytype _ -> "") ;
 	(* tuples are converted to lists *)
 	let tuple = Lymp.get modul "get_tuple" [] in
 	( match tuple with
