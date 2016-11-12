@@ -4,7 +4,7 @@
 
 open Lymp
 
-let py = init ~ocamlfind:false ~lymppy_dirpath:"srcs" "."
+let py = init "."
 let builtin = builtins py
 
 let () =

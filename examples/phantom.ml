@@ -5,7 +5,7 @@
 
 open Lymp
 
-let py = init ~ocamlfind:false ~lymppy_dirpath:"srcs" "."
+let py = init "."
 let phantom = get_module py "phantom"
 
 let download_with_phantom url =
