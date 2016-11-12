@@ -124,7 +124,6 @@ class ExecutionHandler:
 			msg["v"] = ""
 		else:
 			msg = self.ret_to_msg(ret, ret_ref)
-		print(msg)
 		msg = bytes(bson.BSON.encode(msg))
 		self.reader_writer.send_bytes(msg)
 
