@@ -7,4 +7,6 @@ let py = if ocamlfind_ok then Lymp.init "." else Lymp.init ~exec:"python3" ~ocam
 let test = Lymp.get_module py "mod.test"
 
 let () =
-	if (get_string test "get_msg" [] <> "hi there") then raise (Failure "failed")
+	if (get_string test "get_msg" [] <> "hi there") then raise (Failure "failed") ;
+
+	close py
