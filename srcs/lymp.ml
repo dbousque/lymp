@@ -1,10 +1,7 @@
 
 
-let read_pipe_name = ".lymp_to_ocaml"
-let write_pipe_name = ".lymp_to_python"
-
 exception Unknown_return_type of string
-exception Wrong_Pytype
+exception Wrong_Pytype of string
 exception Expected_reference_not_module
 exception Could_not_create_pipe
 exception Pyexception
@@ -38,6 +35,26 @@ type pyobj =
 	| Pylist of pyobj list
 	| Pynone
 
+let ret_wrongtype mod_name func_name expected_type returned_type =
+	let str = mod_name ^ "." ^ func_name ^ " : " in
+	Wrong_Pytype (str ^ "expected " ^ expected_type ^ " but python returned " ^ returned_type)
+
+let make_wrongtype callable func_name expected_type ret_obj =
+	let type_ret = ( match ret_obj with
+		| Pystr _ -> "str"
+		| Pyint _ -> "int"
+		| Pyfloat _ -> "float"
+		| Pybool _ -> "bool"
+		| Pybytes _ -> "bytes"
+		| Pyref _ -> "Pyref"
+		| Pylist _ -> "list"
+		| Pynone -> "Nonetype"
+	) in
+	let mod_name = (match callable with
+		| Pymodule (_,mod_name) -> mod_name
+		| _ -> "method "
+	) in
+	ret_wrongtype mod_name func_name expected_type type_ret
 
 (* SERIALIZATION / DESERIALIZATION *)
 
@@ -64,17 +81,20 @@ let bytes_to_int bytes nb =
 	in
 	_to_int bytes 0 nb 0
 
-let send_bytes py bytes =
+let send_raw_bytes py bytes =
 	let len = Int64.of_int (String.length bytes) in
 	ignore (Unix.write py.write_pipe.fd (int64_to_bytes len) 0 8) ;
 	ignore (Unix.write py.write_pipe.fd bytes 0 (String.length bytes))
 
-let get_bytes py =
+let get_raw_bytes py =
 	let len = Bytes.make 8 (Char.chr 0) in
 	ignore (Unix.read py.read_pipe.fd len 0 8) ;
 	let to_read = bytes_to_int len 8 in
 	let ret_bytes = Bytes.make to_read (Char.chr 0) in
-	ignore (Unix.read py.read_pipe.fd ret_bytes 0 to_read) ;
+	let nb_read = ref 0 in
+	while !nb_read < to_read do
+		nb_read := !nb_read + Unix.read py.read_pipe.fd ret_bytes !nb_read (to_read - !nb_read)
+	done ;
 	ret_bytes
 
 let compose f g x = f (g x)
@@ -160,8 +180,8 @@ let py_call_raw py modul dereference get_attr ret_ref mod_or_ref_bytes func_name
 	let doc = if get_attr then (Bson.add_element "t" (Bson.create_string "") doc) else doc in
 	let doc = if ret_ref then (Bson.add_element "R" (Bson.create_string "") doc) else doc in
 	let bytes = Bson.encode doc in
-	send_bytes py bytes ;
-	let ret_bytes = get_bytes py in
+	send_raw_bytes py bytes ;
+	let ret_bytes = get_raw_bytes py in
 	let ret_doc = Bson.decode ret_bytes in
 	deserialize py ret_doc
 
@@ -185,27 +205,27 @@ let call callable func args =
 let get_string callable func args =
 	match get callable func args with
 	| Pystr s -> s
-	| _ -> raise Wrong_Pytype
+	| ret -> raise (make_wrongtype callable func "str" ret)
 
 let get_int callable func args =
 	match get callable func args with
 	| Pyint i -> i
-	| _ -> raise Wrong_Pytype
+	| ret -> raise (make_wrongtype callable func "int" ret)
 
 let get_float callable func args =
 	match get callable func args with
 	| Pyfloat f -> f
-	| _ -> raise Wrong_Pytype
+	| ret -> raise (make_wrongtype callable func "float" ret)
 
 let get_bool callable func args =
 	match get callable func args with
 	| Pybool b -> b
-	| _ -> raise Wrong_Pytype
+	| ret -> raise (make_wrongtype callable func "bool" ret)
 
 let get_bytes callable func args =
 	match get callable func args with
 	| Pybytes b -> b
-	| _ -> raise Wrong_Pytype
+	| ret -> raise (make_wrongtype callable func "bytes" ret)
 
 let get_ref callable func args =
 	let ret = (
@@ -215,12 +235,12 @@ let get_ref callable func args =
 	) in
 	match ret with
 	| Pyref r -> r
-	| _ -> raise Wrong_Pytype
+	| ret -> raise (make_wrongtype callable func "Pyref" ret)
 
 let get_list callable func args =
 	match get callable func args with
 	| Pylist l -> l
-	| _ -> raise Wrong_Pytype
+	| ret -> raise (make_wrongtype callable func "list" ret)
 
 let attr callable name =
 	match callable with
@@ -230,27 +250,27 @@ let attr callable name =
 let attr_string callable name =
 	match attr callable name with
 	| Pystr s -> s
-	| _ -> raise Wrong_Pytype
+	| ret -> raise (make_wrongtype callable name "str" ret)
 
 let attr_int callable name =
 	match attr callable name with
 	| Pyint i -> i
-	| _ -> raise Wrong_Pytype
+	| ret -> raise (make_wrongtype callable name "int" ret)
 
 let attr_float callable name =
 	match attr callable name with
 	| Pyfloat f -> f
-	| _ -> raise Wrong_Pytype
+	| ret -> raise (make_wrongtype callable name "float" ret)
 
 let attr_bool callable name =
 	match attr callable name with
 	| Pybool b -> b
-	| _ -> raise Wrong_Pytype
+	| ret -> raise (make_wrongtype callable name "bool" ret)
 
 let attr_bytes callable name =
 	match attr callable name with
 	| Pybytes b -> b
-	| _ -> raise Wrong_Pytype
+	| ret -> raise (make_wrongtype callable name "bytes" ret)
 
 let attr_ref callable name =
 	let ret = (
@@ -260,12 +280,12 @@ let attr_ref callable name =
 	) in
 	match ret with
 	| Pyref r -> r
-	| _ -> raise Wrong_Pytype
+	| ret -> raise (make_wrongtype callable name "Pyref" ret)
 
 let attr_list callable name =
 	match attr callable name with
 	| Pylist l -> l
-	| _ -> raise Wrong_Pytype
+	| ret -> raise (make_wrongtype callable name "list" ret)
 
 let dereference r =
 	match r with
@@ -273,7 +293,7 @@ let dereference r =
 	| Pyreference (py, ref_nb) -> py_call_raw py false true false false (Bson.create_int64 (Int64.of_int ref_nb)) "" []
 
 let close py =
-	send_bytes py "done" ;
+	send_raw_bytes py "done" ;
 	ignore (Unix.close_process (py.process_in, py.process_out)) ;
 	Sys.remove py.read_pipe.path ;
 	Sys.remove py.write_pipe.path
@@ -282,6 +302,8 @@ let close py =
    lymp.py will be assumed to be in lymppy_dirpath *)
 let init ?(exec="python3") ?(ocamlfind=true) ?(lymppy_dirpath=".") pyroot =
 	Random.self_init () ;
+	let read_pipe_name = ".lymp_to_ocaml" in
+	let write_pipe_name = ".lymp_to_python" in
 	let read_pipe_path = pyroot ^ Filename.dir_sep ^ read_pipe_name in
 	let write_pipe_path = pyroot ^ Filename.dir_sep ^ write_pipe_name in
 	let read_pipe_randname = create_pipe read_pipe_path read_pipe_name in

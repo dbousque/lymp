@@ -46,7 +46,10 @@ class PipeReaderWriter:
 		except:
 			# ocaml process has been terminated
 			exit_lymp()
-		return self.read_pipe.read(nb_bytes)
+		byts = b'' if sys.version_info.major == 3 else ""
+		while len(byts) < nb_bytes:
+			byts += self.read_pipe.read(nb_bytes)
+		return byts
 
 class ExecutionHandler:
 
@@ -121,6 +124,7 @@ class ExecutionHandler:
 			msg["v"] = ""
 		else:
 			msg = self.ret_to_msg(ret, ret_ref)
+		print(msg)
 		msg = bytes(bson.BSON.encode(msg))
 		self.reader_writer.send_bytes(msg)
 
@@ -148,6 +152,8 @@ class ExecutionHandler:
 			# resolve reference args (using bson jscode)
 			if type(arg) is bson.code.Code:
 				args[i] = self.objs[int(arg)]
+			if type(arg) is bson.int64.Int64:
+				args[i] = int(arg)
 			# for python 2, if arg is str, convert to unicode
 			if sys.version_info.major == 2 and type(arg) is str:
 				args[i] = args[i].decode('utf-8')
