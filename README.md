@@ -79,7 +79,7 @@ def select(html, css_selector):
 <h4>phantom.ml</h4>
 ```ocaml
 (* downloads a webpage using phantomjs, saves a screenshot of it to screen.png,
-   selects links out of page, and prints the links' titles *)
+   selects links out of the page, and prints the links' titles *)
 
 open Lymp
 
@@ -148,7 +148,9 @@ val get_module : pycommunication -> string -> pycallable
 ```ocaml
 val builtins : pycommunication -> pycallable
 ```
-- 1. returns the module giving access to built-in functions and attributes, such as `print()`, `list()`, `dir()` etc.
+- 1. a value returned by `init`
+
+Returns the module giving access to built-in functions and attributes, such as `print()`, `list()`, `dir()` etc.
 
 ```ocaml
 val get : pycallable -> string -> pyobj list -> pyobj
@@ -206,7 +208,7 @@ print_endline content
 You can find a more in-depth example in `examples/reference.ml`
 
 <h3>Notes</h3>
-- If there is a fatal exception, the python process continues as normal, but a Pyexception is raised on the OCaml side (this behaviour could be changed)
+- If there is a fatal exception, the python process continues as normal, but a Pyexception is raised on the OCaml side.
 - Python's stdout is a file named `python_log`, you will find the output and uncatched exceptions' traceback there.
 
 <h3>Implementation</h3>
