@@ -233,7 +233,7 @@ You can find a more in-depth example in `examples/reference.ml`
 <h3>Implementation</h3>
 
 `lymp` currently uses named pipes to make OCaml and Python processes communicate. BSON is used to serialize data passed.
-Performance is very good for almost all use cases. On my setup the overhead associated with a function call is roughly 60 μs. You can launch the benchmark to see what the overhead is on yours.
+Performance is very good for almost all use cases. On my setup (virtual machine and relatively low specs), the overhead associated with a function call is roughly 25 μs. You can launch the benchmark to see what the overhead is on yours.
 Performance could be improved by using other IPC methods, such as shared memory.
 
 <h3>"lymp" ?</h3>
