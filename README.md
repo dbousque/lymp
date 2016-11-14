@@ -9,6 +9,8 @@ Python 2 and 3 compatible.
 <h3>Installation</h3>
 `$ make build && make install`
 
+Python's `bson` package is required, `opam` and the Makefile installs it using `pip` and `pip3`, so you should not have to install it manually.
+
 <h3>Simple example</h3>
 
 ```
@@ -198,6 +200,11 @@ val attr_ref : pycallable -> string -> pycallable
 ```
 Calls `attr` and forces the result to be a reference.
 
+```ocaml
+val dereference : pycallable -> pyobj
+```
+If the value's type is supported, it will be returned, otherwise a reference to it is returned.
+
 Example usage of a reference :
 ```ocaml
 let file = get_ref builtin "open" [Pystr "input_file.txt"] in
@@ -210,6 +217,7 @@ You can find a more in-depth example in `examples/reference.ml`
 <h3>Notes</h3>
 - If there is a fatal exception, the python process continues as normal, but a Pyexception is raised on the OCaml side.
 - Python's stdout is a file named `python_log`, you will find the output and uncatched exceptions' traceback there.
+- Python's `int`s are converted to OCaml `int`s, overflow and underflow are therefore possible. Same goes for `float`.
 
 <h3>Implementation</h3>
 
