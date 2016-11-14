@@ -12,7 +12,7 @@ Python 2 and 3 compatible.
 
 or
 
-`$ make build && make install`
+`make build && make install`
 
 Python's `pymongo` package is required (for it's bson subpackage), `opam` and the Makefile try to install it using `pip` and `pip3`, so you should not have to install it manually. If `$ python3 -c "import pymongo"` fails, you need to install `pymongo`, maybe using sudo on `pip` or `pip3`.
 
