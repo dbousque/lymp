@@ -7,9 +7,18 @@ You can also very easily write OCaml wrappers for Python libraries or your own m
 Python 2 and 3 compatible.
 
 <h3>Installation</h3>
+
+`opam install lymp`
+
+or
+
 `$ make build && make install`
 
-Python's `bson` package is required, `opam` and the Makefile install it using `pip` and `pip3`, so you should not have to install it manually. If `$ python -c "import bson"` fails, you need to install `bson`, maybe using sudo on `pip` or `pip3`.
+Python's `pymongo` package is required (for it's bson subpackage), `opam` and the Makefile try to install it using `pip` and `pip3`, so you should not have to install it manually. If `$ python3 -c "import pymongo"` fails, you need to install `pymongo`, maybe using sudo on `pip` or `pip3`.
+
+To make sure everything is fine, you may want to compile the simple example, like so for example : `ocamlbuild -use-ocamlfind -pkgs lymp simple.native && ./simple.native`
+
+If you have trouble building the package, please contact me.
 
 <h3>Simple example</h3>
 
