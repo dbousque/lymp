@@ -215,6 +215,7 @@ print_endline content
 You can find a more in-depth example in `examples/reference.ml`
 
 <h3>Notes</h3>
+- Tuples returned from Python are converted to lists.
 - If there is a fatal exception, the python process continues as normal, but a Pyexception is raised on the OCaml side.
 - Python's stdout is a file named `python_log`, you will find the output and uncatched exceptions' traceback there.
 - Python's `int`s are converted to OCaml `int`s, overflow and underflow are therefore possible. Same goes for `float`.
