@@ -18,6 +18,8 @@ all:
 install: setup.data
 	$(SETUP) -install $(INSTALLFLAGS)
 	cp srcs/lymp.py `ocamlfind query lymp`/
+	pip install bson
+	pip3 install bson
 
 uninstall: setup.data
 	$(SETUP) -uninstall $(UNINSTALLFLAGS)
