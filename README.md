@@ -9,7 +9,7 @@ Python 2 and 3 compatible.
 <h3>Installation</h3>
 `$ make build && make install`
 
-Python's `bson` package is required, `opam` and the Makefile installs it using `pip` and `pip3`, so you should not have to install it manually.
+Python's `bson` package is required, `opam` and the Makefile install it using `pip` and `pip3`, so you should not have to install it manually.
 
 <h3>Simple example</h3>
 
