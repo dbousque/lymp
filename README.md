@@ -58,7 +58,7 @@ first second
 
 <h3>Useful example</h3>
 
-This example shows how you can use `selenium` and `lxml` to download a webpage (with content loaded via Javascript thanks to PhantomJS), and then parse it and manipulate the DOM. You would need `lxml`, `cssselect`, `selenium`, nodeJS and phantomJS (through `npm` for example) to run this example).
+This example shows how you can use `selenium` and `lxml` to download a webpage (with content loaded via Javascript thanks to PhantomJS), and then parse it and manipulate the DOM. You would need `lxml`, `cssselect`, `selenium`, nodeJS and phantomJS (through `npm` for example) to run this example.
 
 <h4>phantom.py</h4>
 ```python
