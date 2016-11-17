@@ -128,7 +128,14 @@ class ExecutionHandler:
 		self.reader_writer.send_bytes(msg)
 
 	def resolve_args(self, args):
-		for i,arg in enumerate(args):
+		named = {}
+		i = 0
+		for arg in args:
+			# resolve named args (list of size 2, first one being a bson.code.Code starting with "!")
+			if type(arg) is list and len(arg) == 2 and type(arg[0]) is bson.code.Code and str(arg[0])[0] == "!":
+				named[str(arg[0])[1:]] = self.resolve_args(arg[1])[0]
+				del args[i]
+				continue
 			# resolve reference args (using bson jscode)
 			if type(arg) is bson.code.Code:
 				args[i] = self.objs[int(arg)]
@@ -142,8 +149,9 @@ class ExecutionHandler:
 				args[i] = str(arg)
 			# if we have a list, we must recursively resolve
 			if type(arg) is list:
-				args[i] = self.resolve_args(arg)
-		return args
+				args[i] = self.resolve_args(arg)[0]
+			i += 1
+		return args, named
 
 	def execute_instruction(self, instruction):
 		if "r" in instruction:
@@ -160,13 +168,19 @@ class ExecutionHandler:
 				__import__(instruction["m"])
 				self.modules[instruction["m"]] = sys.modules[instruction["m"]]
 			module = self.modules[instruction["m"]]
+		# set attribute
+		if "s" in instruction:
+			args, named = self.resolve_args(instruction["a"])
+			arg = args[0]
+			setattr(module, instruction["f"], arg)
+			return None
 		func_or_attr = getattr(module, instruction["f"])
 		# get attribute
 		if "t" in instruction:
 			return func_or_attr
 		args = instruction["a"]
-		args = self.resolve_args(args)
-		ret = func_or_attr(*args)
+		args, named = self.resolve_args(args)
+		ret = func_or_attr(*args, **named)
 		return ret
 
 working_directory = sys.argv[1]

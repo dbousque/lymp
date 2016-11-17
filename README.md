@@ -1,3 +1,5 @@
+<h2>Lymp</h2>
+
 <h3>What</h3>
 
 `lymp` is a library allowing you to use Python functions and objects from OCaml. It gives access to the rich ecosystem of libraries in Python. You might want to use `selenium`, `scipy`, `lxml`, `requests`, `pandas` or `matplotlib`.
@@ -128,10 +130,15 @@ type pyobj =
     | Pyref of pycallable
     | Pylist of pyobj list
     | Pynone
+	| Namedarg of (string * pyobj)
 ```
 
 Main type representing python values, which are passed as arguments of functions and returned from functions. `Pyref` allows us to use python objects, we explain that later on.
 
+`Namedarg` represents a named argument, which you can use like so :
+```ocaml
+get builtin "open" [Pystr "input.txt" ; Namedarg ("encoding", Pystr "utf-8")]
+```
 
 <h3>API</h3>
 
@@ -181,9 +188,17 @@ Example : `attr sys "argv"` (equivalent in python : `sys.argv`)
 Sister functions : `attr_string`, `attr_int`, `attr_float`, `attr_bool`, `attr_bytes` and `attr_list`. They call `attr` and try to do pattern matching over the result to return the desired type, they fail with a `Wrong_Pytype` if the result was not from the expected type.
 
 ```ocaml
+val set_attr : pycallable -> string -> pyobj -> unit
+```
+- 1. a module or a reference, to wich you wish to set an attribute
+- 2. name of the attribute
+- 3. value to set the attribute to
+
+```ocaml
 val close : pycommunication -> unit
 ```
 - 1. a value returned by `init`
+
 Exit properly, it's important to call it.
 
 

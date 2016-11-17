@@ -22,6 +22,7 @@ type pyobj =
 	| Pyref of pycallable
 	| Pylist of pyobj list
 	| Pynone
+	| Namedarg of (string * pyobj)
 
 val get_module : pycommunication -> string -> pycallable
 
@@ -48,6 +49,8 @@ val attr_bool : pycallable -> string -> bool
 val attr_bytes : pycallable -> string -> bytes
 val attr_ref : pycallable -> string -> pycallable
 val attr_list : pycallable -> string -> pyobj list
+
+val set_attr : pycallable -> string -> pyobj -> unit
 
 (* get what is being referenced,
    will return a Pyref if the python type is not supported *)

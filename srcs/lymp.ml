@@ -34,6 +34,7 @@ type pyobj =
 	| Pyref of pycallable
 	| Pylist of pyobj list
 	| Pynone
+	| Namedarg of (string * pyobj)
 
 let ret_wrongtype mod_name func_name expected_type returned_type =
 	let str = mod_name ^ "." ^ func_name ^ " : " in
@@ -49,6 +50,7 @@ let make_wrongtype callable func_name expected_type ret_obj =
 		| Pyref _ -> "Pyref"
 		| Pylist _ -> "list"
 		| Pynone -> "Nonetype"
+		| Namedarg _ -> "Namedarg"
 	) in
 	let mod_name = (match callable with
 		| Pymodule (_,mod_name) -> mod_name
@@ -131,6 +133,7 @@ and serialize = function
 	| Pyref (Pyreference (py,ref_nb)) -> Bson.create_jscode (string_of_int ref_nb)
 	| Pyref (Pymodule _) -> raise Expected_reference_not_module
 	| Pynone -> Bson.create_null ()
+	| Namedarg (name, value) -> Bson.create_list [serialize value ; Bson.create_jscode ("!" ^ name)]
 
 
 (* COMMUNICATION UTILS *)
@@ -171,13 +174,14 @@ let create_process exec pyroot ocamlfind_ready lymppy_dirpath read_pipe_name wri
 
 (* CALL *)
 
-let py_call_raw py modul dereference get_attr ret_ref mod_or_ref_bytes func_name args =
+let py_call_raw py set_attr modul dereference get_attr ret_ref mod_or_ref_bytes func_name args =
 	let doc = Bson.empty in
 	let lst = serialize_list args in
 	let doc = Bson.add_element "a" lst doc in
 	let doc = Bson.add_element (if modul then "m" else "r") mod_or_ref_bytes doc in
 	let doc = Bson.add_element (if dereference then "g" else "f") (Bson.create_string func_name) doc in
 	let doc = if get_attr then (Bson.add_element "t" (Bson.create_string "") doc) else doc in
+	let doc = if set_attr then (Bson.add_element "s" (Bson.create_string "") doc) else doc in
 	let doc = if ret_ref then (Bson.add_element "R" (Bson.create_string "") doc) else doc in
 	let bytes = Bson.encode doc in
 	send_raw_bytes py bytes ;
@@ -196,8 +200,8 @@ let builtins py =
 
 let get callable func args =
 	match callable with
-	| Pymodule (py, name) -> py_call_raw py true false false false (Bson.create_string name) func args
-	| Pyreference (py, ref_nb) -> py_call_raw py false false false false (Bson.create_int64 (Int64.of_int ref_nb)) func args
+	| Pymodule (py, name) -> py_call_raw py false true false false false (Bson.create_string name) func args
+	| Pyreference (py, ref_nb) -> py_call_raw py false false false false false (Bson.create_int64 (Int64.of_int ref_nb)) func args
 
 let call callable func args =
 	ignore (get callable func args)
@@ -230,8 +234,8 @@ let get_bytes callable func args =
 let get_ref callable func args =
 	let ret = (
 		match callable with
-		| Pymodule (py, name) -> py_call_raw py true false false true (Bson.create_string name) func args
-		| Pyreference (py, ref_nb) -> py_call_raw py false false false true (Bson.create_int64 (Int64.of_int ref_nb)) func args
+		| Pymodule (py, name) -> py_call_raw py false true false false true (Bson.create_string name) func args
+		| Pyreference (py, ref_nb) -> py_call_raw py false false false false true (Bson.create_int64 (Int64.of_int ref_nb)) func args
 	) in
 	match ret with
 	| Pyref r -> r
@@ -244,8 +248,8 @@ let get_list callable func args =
 
 let attr callable name =
 	match callable with
-	| Pymodule (py, name) -> py_call_raw py true false true false (Bson.create_string name) name []
-	| Pyreference (py, ref_nb) -> py_call_raw py false false true false (Bson.create_int64 (Int64.of_int ref_nb)) name []
+	| Pymodule (py, name) -> py_call_raw py false true false true false (Bson.create_string name) name []
+	| Pyreference (py, ref_nb) -> py_call_raw py false false false true false (Bson.create_int64 (Int64.of_int ref_nb)) name []
 
 let attr_string callable name =
 	match attr callable name with
@@ -275,8 +279,8 @@ let attr_bytes callable name =
 let attr_ref callable name =
 	let ret = (
 		match callable with
-		| Pymodule (py, name) -> py_call_raw py true false true true (Bson.create_string name) name []
-		| Pyreference (py, ref_nb) -> py_call_raw py false false true true (Bson.create_int64 (Int64.of_int ref_nb)) name []
+		| Pymodule (py, name) -> py_call_raw py false true false true true (Bson.create_string name) name []
+		| Pyreference (py, ref_nb) -> py_call_raw py false false false true true (Bson.create_int64 (Int64.of_int ref_nb)) name []
 	) in
 	match ret with
 	| Pyref r -> r
@@ -287,10 +291,16 @@ let attr_list callable name =
 	| Pylist l -> l
 	| ret -> raise (make_wrongtype callable name "list" ret)
 
+let set_attr callable name value =
+	ignore ( match callable with
+	| Pymodule (py, name) -> py_call_raw py true true false false false (Bson.create_string name) name [value]
+	| Pyreference (py, ref_nb) -> py_call_raw py true false false false false (Bson.create_int64 (Int64.of_int ref_nb)) name [value] ) ;
+	()
+
 let dereference r =
 	match r with
 	| Pymodule (py, name) -> raise Expected_reference_not_module
-	| Pyreference (py, ref_nb) -> py_call_raw py false true false false (Bson.create_int64 (Int64.of_int ref_nb)) "" []
+	| Pyreference (py, ref_nb) -> py_call_raw py false false true false false (Bson.create_int64 (Int64.of_int ref_nb)) "" []
 
 let close py =
 	send_raw_bytes py "done" ;
