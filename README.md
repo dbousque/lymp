@@ -1,6 +1,4 @@
-<h2>Lymp</h2>
-
-<h3>What</h3>
+<h1>Lymp</h1>
 
 `lymp` is a library allowing you to use Python functions and objects from OCaml. It gives access to the rich ecosystem of libraries in Python. You might want to use `selenium`, `scipy`, `lxml`, `requests`, `pandas` or `matplotlib`.
 
@@ -145,6 +143,7 @@ get builtin "open" [Pystr "input.txt" ; Namedarg ("encoding", Pystr "utf-8")]
 `init` spawns a Python process and gets it ready. A `pycommunication` is returned, which you can then use to make modules. `get_module` can be thought of as an `import` statement in Python.
 You can then call the functions or get the attributes of the module, using the get* and attr* functions.
 
+
 ```ocaml
 val init : ?exec:string -> ?ocamlfind:bool -> ?lymppy_dirpath:string -> string -> pycommunication
 ```
@@ -153,18 +152,21 @@ val init : ?exec:string -> ?ocamlfind:bool -> ?lymppy_dirpath:string -> string -
 - 3. `lymppy_dirpath` : if `ocamlfind` is set to `false`, `lymp.py` will be assumed to be in `lymppy_dirpath`. Default is `"."`
 - 4. path from which python will be launched, which influences what modules are accessible. Example value : `"../py_utils"`
 
+
 ```ocaml
 val get_module : pycommunication -> string -> pycallable
 ```
 - 1. a value returned by `init`
 - 2. name of the module you whish to use (can be something like `"app.crypto.utils"`)
 
+
 ```ocaml
 val builtins : pycommunication -> pycallable
 ```
 - 1. a value returned by `init`
 
-Returns the module giving access to built-in functions and attributes, such as `print()`, `list()`, `dir()` etc.
+Returns the module giving access to built-in functions and attributes, such as `print()`, `str()`, `dir()` etc.
+
 
 ```ocaml
 val get : pycallable -> string -> pyobj list -> pyobj
@@ -177,6 +179,7 @@ Example : `get time "sleep" [Pyint 2]` (equivalent in python : `time.sleep(2)`)
 
 Sister functions : `get_string`, `get_int`, `get_float`, `get_bool`, `get_bytes` and `get_list`. They call `get` and try to do pattern matching over the result to return the desired type, they fail with a `Wrong_Pytype` if the result was not from the expected type. For example, `get_string` doesn't return a `pyobj`, but a `string`.
 
+
 ```ocaml
 val attr : pycallable -> string -> pyobj
 ```
@@ -187,12 +190,23 @@ Example : `attr sys "argv"` (equivalent in python : `sys.argv`)
 
 Sister functions : `attr_string`, `attr_int`, `attr_float`, `attr_bool`, `attr_bytes` and `attr_list`. They call `attr` and try to do pattern matching over the result to return the desired type, they fail with a `Wrong_Pytype` if the result was not from the expected type.
 
+
+```ocaml
+val call : pycallable -> string -> pyobj list -> unit
+```
+
+Calls `get` and dismisses the value returned
+
+
 ```ocaml
 val set_attr : pycallable -> string -> pyobj -> unit
 ```
-- 1. a module or a reference, to wich you wish to set an attribute
+- 1. a module or a reference, to which you wish to set an attribute
 - 2. name of the attribute
 - 3. value to set the attribute to
+
+Example : `set_attr sys "stdout" (Pyint 42)` (equivalent in python : `sys.stdout = 42`)
+
 
 ```ocaml
 val close : pycommunication -> unit
@@ -210,15 +224,19 @@ A `Pyreference` is of type `pycallable`, which allows us to call `get` and `attr
 References passed as arguments are resolved on the python side, which means that if you call a function with a reference as argument, on the python side the actual object will be passed.
 
 Another use case for references (other than unsupported types) is for very big strings, bytes or lists, which you may not whish to send back and forth between OCaml and Python if you need to further process them in python. Passing is relatively cheap, but you may want to avoid it.
+
+
 ```ocaml
 val get_ref : pycallable -> string -> pyobj list -> pycallable
 ```
 Calls `get` and forces the result to be a reference, so the actual data is not sent back to OCaml, but remains on the Python side. To be used for unsupported types and big strings, bytes and lists if you need to further process them in python. What we call "big string" is a whole webpage for example (but as shown in the "Useful example", it's perfectly fine to pass the string directly back and forth).
 
+
 ```ocaml
 val attr_ref : pycallable -> string -> pycallable
 ```
 Calls `attr` and forces the result to be a reference.
+
 
 ```ocaml
 val dereference : pycallable -> pyobj
@@ -252,4 +270,4 @@ Performance could be improved by using other IPC methods, such as shared memory.
 
 <h3>TODO</h3>
 
-If it matters to you, better support for Python exceptions could be implemented (currently, a Pyexception is raised). Also, better performance would be pretty easy to get. Support for dicts and named arguments could be added. We could also add the option to log Python's stdout to OCaml's stdout (there would be some drawbacks but it might be worth it). You are welcome to make pull requests and suggestions.
+If it matters to you, better support for Python exceptions could be implemented (currently, a Pyexception is raised). Also, better performance would be pretty easy to get. Support for dicts could be added. We could also add the option to log Python's stdout to OCaml's stdout (there would be some drawbacks but it might be worth it). You are welcome to make pull requests and suggestions.
