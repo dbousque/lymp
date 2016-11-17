@@ -6,7 +6,7 @@ You can also very easily write OCaml wrappers for Python libraries or your own m
 
 Python 2 and 3 compatible.
 
-<h3>Installation</h3>
+<h2>Installation</h2>
 
 `opam install lymp` or `opam install bson && make build && make install`
 
@@ -16,7 +16,7 @@ To make sure everything is fine, you may want to compile the simple example, lik
 
 If you have trouble building the package, please contact me.
 
-<h3>Simple example</h3>
+<h2>Simple example</h2>
 
 ```
 $ ls
@@ -60,8 +60,7 @@ hi there
 first second
 ```
 
-
-<h3>Useful example</h3>
+<h2>Useful example</h2>
 
 This example shows how you can use `selenium` and `lxml` to download a webpage (with content loaded via Javascript thanks to PhantomJS), and then parse it and manipulate the DOM. You would need `lxml`, `cssselect`, `selenium`, nodeJS and phantomJS (through `npm` for example) to run this example.
 
@@ -116,7 +115,7 @@ let () =
 ```
 You don't really need the python script to do that, you could write it completely in OCaml using `lymp`, getting and manipulating the `driver` object directly using a reference.
 
-<h3>pyobj</h3>
+<h2>pyobj</h2>
 
 ```ocaml
 type pyobj =
@@ -138,12 +137,12 @@ Main type representing python values, which are passed as arguments of functions
 get builtin "open" [Pystr "input.txt" ; Namedarg ("encoding", Pystr "utf-8")]
 ```
 
-<h3>API</h3>
+<h2>API</h2>
 
 `init` spawns a Python process and gets it ready. A `pycommunication` is returned, which you can then use to make modules. `get_module` can be thought of as an `import` statement in Python.
 You can then call the functions or get the attributes of the module, using the get* and attr* functions.
 
-
+</br>
 ```ocaml
 val init : ?exec:string -> ?ocamlfind:bool -> ?lymppy_dirpath:string -> string -> pycommunication
 ```
@@ -152,14 +151,14 @@ val init : ?exec:string -> ?ocamlfind:bool -> ?lymppy_dirpath:string -> string -
 - 3. `lymppy_dirpath` : if `ocamlfind` is set to `false`, `lymp.py` will be assumed to be in `lymppy_dirpath`. Default is `"."`
 - 4. path from which python will be launched, which influences what modules are accessible. Example value : `"../py_utils"`
 
-
+</br>
 ```ocaml
 val get_module : pycommunication -> string -> pycallable
 ```
 - 1. a value returned by `init`
 - 2. name of the module you whish to use (can be something like `"app.crypto.utils"`)
 
-
+</br>
 ```ocaml
 val builtins : pycommunication -> pycallable
 ```
@@ -167,7 +166,7 @@ val builtins : pycommunication -> pycallable
 
 Returns the module giving access to built-in functions and attributes, such as `print()`, `str()`, `dir()` etc.
 
-
+</br>
 ```ocaml
 val get : pycallable -> string -> pyobj list -> pyobj
 ```
@@ -179,7 +178,14 @@ Example : `get time "sleep" [Pyint 2]` (equivalent in python : `time.sleep(2)`)
 
 Sister functions : `get_string`, `get_int`, `get_float`, `get_bool`, `get_bytes` and `get_list`. They call `get` and try to do pattern matching over the result to return the desired type, they fail with a `Wrong_Pytype` if the result was not from the expected type. For example, `get_string` doesn't return a `pyobj`, but a `string`.
 
+</br>
+```ocaml
+val call : pycallable -> string -> pyobj list -> unit
+```
 
+Calls `get` and dismisses the value returned
+
+</br>
 ```ocaml
 val attr : pycallable -> string -> pyobj
 ```
@@ -190,14 +196,7 @@ Example : `attr sys "argv"` (equivalent in python : `sys.argv`)
 
 Sister functions : `attr_string`, `attr_int`, `attr_float`, `attr_bool`, `attr_bytes` and `attr_list`. They call `attr` and try to do pattern matching over the result to return the desired type, they fail with a `Wrong_Pytype` if the result was not from the expected type.
 
-
-```ocaml
-val call : pycallable -> string -> pyobj list -> unit
-```
-
-Calls `get` and dismisses the value returned
-
-
+</br>
 ```ocaml
 val set_attr : pycallable -> string -> pyobj -> unit
 ```
@@ -207,7 +206,7 @@ val set_attr : pycallable -> string -> pyobj -> unit
 
 Example : `set_attr sys "stdout" (Pyint 42)` (equivalent in python : `sys.stdout = 42`)
 
-
+</br>
 ```ocaml
 val close : pycommunication -> unit
 ```
@@ -216,7 +215,7 @@ val close : pycommunication -> unit
 Exit properly, it's important to call it.
 
 
-<h3>References</h3>
+<h2>References</h2>
 To be able to use python objects of non supported-types (anything outside of int, str etc.), we have references.
 
 A `Pyreference` is of type `pycallable`, which allows us to call `get` and `attr` on it. When passed as arguments or returned from functions, they are passed as `Pyref`, of type `pyobj`.
@@ -225,24 +224,25 @@ References passed as arguments are resolved on the python side, which means that
 
 Another use case for references (other than unsupported types) is for very big strings, bytes or lists, which you may not whish to send back and forth between OCaml and Python if you need to further process them in python. Passing is relatively cheap, but you may want to avoid it.
 
-
+</br>
 ```ocaml
 val get_ref : pycallable -> string -> pyobj list -> pycallable
 ```
 Calls `get` and forces the result to be a reference, so the actual data is not sent back to OCaml, but remains on the Python side. To be used for unsupported types and big strings, bytes and lists if you need to further process them in python. What we call "big string" is a whole webpage for example (but as shown in the "Useful example", it's perfectly fine to pass the string directly back and forth).
 
-
+</br>
 ```ocaml
 val attr_ref : pycallable -> string -> pycallable
 ```
 Calls `attr` and forces the result to be a reference.
 
-
+</br>
 ```ocaml
 val dereference : pycallable -> pyobj
 ```
 If the value's type is supported, it will be returned, otherwise a reference to it is returned.
 
+</br>
 Example usage of a reference :
 ```ocaml
 let file = get_ref builtin "open" [Pystr "input_file.txt"] in
@@ -252,22 +252,22 @@ print_endline content
 ```
 You can find a more in-depth example in `examples/reference.ml`
 
-<h3>Notes</h3>
+<h2>Notes</h2>
 - In Python 2, Pystr are converted to `unicode`, assuming that the string is utf-8 encoded, and Pybytes to `str`
 - Tuples returned from Python are converted to lists.
 - If there is a fatal exception, the python process continues as normal, but a Pyexception is raised on the OCaml side.
 - Python's stdout is a file named `python_log`, you will find the output and uncatched exceptions' traceback there.
 - Python's `int`s are converted to OCaml `int`s, overflow and underflow are therefore possible. Same goes for `float`.
 
-<h3>Implementation</h3>
+<h2>Implementation</h2>
 
 `lymp` currently uses named pipes to make OCaml and Python processes communicate. BSON is used to serialize data passed.
 Performance is very good for almost all use cases. On my setup (virtual machine and relatively low specs), the overhead associated with a function call is roughly 25 μs. You can launch the benchmark to see what the overhead is on yours.
 Performance could be improved by using other IPC methods, such as shared memory.
 
-<h3>"lymp" ?</h3>
+<h2>"lymp" ?</h2>
 "pyml" was already taken, and so were "ocpy" and "pyoc", so I figured I would just mix letters.
 
-<h3>TODO</h3>
+<h2>TODO</h2>
 
 If it matters to you, better support for Python exceptions could be implemented (currently, a Pyexception is raised). Also, better performance would be pretty easy to get. Support for dicts could be added. We could also add the option to log Python's stdout to OCaml's stdout (there would be some drawbacks but it might be worth it). You are welcome to make pull requests and suggestions.
