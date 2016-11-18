@@ -4,7 +4,7 @@
 
 You can also very easily write OCaml wrappers for Python libraries or your own modules.
 
-Python 2 and 3 compatible.
+Python 2 and 3 compatible. Thread safe.
 
 <h2>Installation</h2>
 
@@ -223,6 +223,8 @@ A `Pyreference` is of type `pycallable`, which allows us to call `get` and `attr
 References passed as arguments are resolved on the python side, which means that if you call a function with a reference as argument, on the python side the actual object will be passed.
 
 Another use case for references (other than unsupported types) is for very big strings, bytes or lists, which you may not whish to send back and forth between OCaml and Python if you need to further process them in python. Passing is relatively cheap, but you may want to avoid it.
+
+Objects referenced are garbage collected when you no longer need them.
 
 </br>
 ```ocaml

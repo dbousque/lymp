@@ -157,6 +157,10 @@ class ExecutionHandler:
 		if "r" in instruction:
 			# module is the object referenced, later we call getattr to get the method called
 			module = self.objs[instruction["r"]]
+			# if we were asked to 'detach' (release) the reference
+			if "d" in instruction:
+				del self.objs[instruction["r"]]
+				return None
 			# if we were asked to return the reference
 			if "g" in instruction:
 				return module

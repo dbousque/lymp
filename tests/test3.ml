@@ -21,7 +21,6 @@ let () =
 	(match int_val with
 	| Lymp.Pyint v -> if v <> 42 then raise (Failure "failed")
 	| _ -> raise (Failure "failed") );
-
 	let lst = Lymp.get_list fetch_obj "ret_list" [] in
 	( match lst with
 	| [Lymp.Pyint i1 ; Lymp.Pyint i2 ; Lymp.Pyref obj ; Lymp.Pylist [Lymp.Pystr str ; Lymp.Pyint i3] ; Lymp.Pyint i4] -> if i1 <> 1 || i2 <> 2 || i3 <> 3 || i4 <> 4 || str <> "salut" then raise (Failure "failed")
