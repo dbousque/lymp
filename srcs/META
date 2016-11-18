@@ -1,6 +1,6 @@
 # OASIS_START
-# DO NOT EDIT (digest: d4df35d8fbbc8d38cd9eaa0ba7acc2fb)
-version = "0.1"
+# DO NOT EDIT (digest: 3c34aae57ba8b2f68af93928cb344377)
+version = "0.1.2"
 description = "Use Python functions and objects from OCaml"
 requires = "bson unix threads"
 archive(byte) = "lymp.cma"
