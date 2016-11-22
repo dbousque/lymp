@@ -6,13 +6,15 @@ You can also very easily write OCaml wrappers for Python libraries or your own m
 
 Python 2 and 3 compatible. Thread safe.
 
-<h2>Installation</h2>
+<h2>Installation and compilation</h2>
 
 `opam install lymp` or `opam install bson && make build && make install`
 
 Python's `pymongo` package is required (for it's bson subpackage), `opam` and the Makefile try to install it using `pip` and `pip3`, so you should not have to install it manually. If `$ python3 -c "import pymongo"` fails, you need to install `pymongo`, maybe using sudo on `pip` or `pip3`.
 
-To make sure everything is fine, you may want to compile the simple example, like so for example : `ocamlbuild -use-ocamlfind -pkgs lymp simple.native && ./simple.native`
+To make sure everything is fine, you may want to compile the simple example, like so for example : `ocamlbuild -use-ocamlfind -pkgs lymp -tag thread simple.native && ./simple.native`
+
+When compiling a project using `lymp`, you need to link the `thread` library. For example, when using ocamlbuild, set a tag : `-tag thread`.
 
 If you have trouble building the package, please contact me.
 
