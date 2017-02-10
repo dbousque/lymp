@@ -130,7 +130,7 @@ type pyobj =
     | Pytuple of pyobj list
     | Pylist of pyobj list
     | Pynone
-	| Namedarg of (string * pyobj)
+    | Namedarg of (string * pyobj)
 ```
 
 Main type representing python values, which are passed as arguments of functions and returned from functions. `Pyref` allows us to use python objects, we explain that later on.
@@ -179,7 +179,7 @@ val get : pycallable -> string -> pyobj list -> pyobj
 
 Example : `get time "sleep" [Pyint 2]` (equivalent in python : `time.sleep(2)`)
 
-Sister functions : `get_string`, `get_int`, `get_float`, `get_bool`, `get_bytes` and `get_list`. They call `get` and try to do pattern matching over the result to return the desired type, they fail with a `Wrong_Pytype` if the result was not from the expected type. For example, `get_string` doesn't return a `pyobj`, but a `string`.
+Sister functions : `get_string`, `get_int`, `get_float`, `get_bool`, `get_bytes`, `get_tuple` and `get_list`. They call `get` and try to do pattern matching over the result to return the desired type, they fail with a `Wrong_Pytype` if the result was not from the expected type. For example, `get_string` doesn't return a `pyobj`, but a `string`.
 
 </br>
 ```ocaml
@@ -197,7 +197,7 @@ val attr : pycallable -> string -> pyobj
 
 Example : `attr sys "argv"` (equivalent in python : `sys.argv`)
 
-Sister functions : `attr_string`, `attr_int`, `attr_float`, `attr_bool`, `attr_bytes` and `attr_list`. They call `attr` and try to do pattern matching over the result to return the desired type, they fail with a `Wrong_Pytype` if the result was not from the expected type.
+Sister functions : `attr_string`, `attr_int`, `attr_float`, `attr_bool`, `attr_bytes`, `attr_tuple` and `attr_list`. They call `attr` and try to do pattern matching over the result to return the desired type, they fail with a `Wrong_Pytype` if the result was not from the expected type.
 
 </br>
 ```ocaml
