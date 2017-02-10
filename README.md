@@ -8,7 +8,7 @@ Python 2 and 3 compatible. Thread safe.
 
 <h2>Installation and compilation</h2>
 
-`opam install lymp` or `opam install bson && make build && make install`
+`opam update && opam install lymp`
 
 Python's `pymongo` package is required (for it's bson subpackage), `opam` and the Makefile try to install it using `pip` and `pip3`, so you should not have to install it manually. If `$ python3 -c "import pymongo"` fails, you need to install `pymongo`, maybe using sudo on `pip` or `pip3`.
 
