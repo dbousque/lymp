@@ -127,6 +127,7 @@ type pyobj =
     | Pybool of bool
     | Pybytes of bytes
     | Pyref of pycallable
+    | Pytuple of pyobj list
     | Pylist of pyobj list
     | Pynone
 	| Namedarg of (string * pyobj)

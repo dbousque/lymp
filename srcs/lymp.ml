@@ -19,7 +19,8 @@ type pycommunication = {
 	write_pipe: pipe ;
 	process_in: in_channel ;
 	process_out: out_channel ;
-	mutex: Mutex.t
+	mutex: Mutex.t ;
+	mutable closed: bool
 }
 
 type pycallable =
@@ -148,7 +149,7 @@ let rec serialize_list lst =
 and serialize = function
 	| Pystr str -> Bson.create_string str
 	| Pyint i -> Bson.create_int64 (Int64.of_int i)
-	| Pytuple lst -> Bson.add_element "v" (serialize_list lst) Bson.empty
+	| Pytuple lst -> Bson.empty |> Bson.add_element "v" (serialize_list lst) |> Bson.create_doc_element
 	| Pylist lst -> serialize_list lst
 	| Pyfloat f -> Bson.create_double f
 	| Pybool b -> Bson.create_boolean b
@@ -202,8 +203,13 @@ and release_reference reference =
 	match reference with
 	| Pymodule _ -> ()
 	| Pyreference (py, ref_nb) ->
-		try ignore (py_call_raw py true false false false false false (Bson.create_int64 (Int64.of_int ref_nb)) "" []) with
-		| _ -> ()
+		( if py.closed = false then
+			( try ignore (py_call_raw py true false false false false false (Bson.create_int64 (Int64.of_int ref_nb)) "" []) with
+		 	  | _ -> ()
+			)
+		  else
+			()
+		)
 
 
 (* INTERFACE *)
@@ -330,6 +336,7 @@ let dereference r =
 
 let close py =
 	Mutex.lock py.mutex ;
+	py.closed <- true ;
 	send_raw_bytes py "done" ;
 	Mutex.unlock py.mutex ;
 	ignore (Unix.close_process (py.process_in, py.process_out)) ;
@@ -353,5 +360,6 @@ let init ?(exec="python3") ?(ocamlfind=true) ?(lymppy_dirpath=".") pyroot =
 		write_pipe = write_pipe ;
 		process_in = process_in ;
 		process_out = process_out ;
-		mutex = Mutex.create ()
+		mutex = Mutex.create () ;
+		closed = false
 	}

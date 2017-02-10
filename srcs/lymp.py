@@ -55,7 +55,7 @@ class ExecutionHandler:
 
 	to_ret_types = {
 		int: "i",
-		tuple: "t"
+		tuple: "t",
 		list: "l",
 		str: "s",
 		float: "f",
@@ -105,6 +105,9 @@ class ExecutionHandler:
 			msg["v"] = bson.code.Code(str(self.ref_nb))
 		else:
 			msg["t"] = self.to_ret_types[type(ret)]
+			# tuples are just like lists, but their type "t" is "t" instead of "l"
+			if type(ret) is tuple:
+				ret = list(ret)
 			# if type is list, further resolve
 			if type(ret) is list:
 				msg["v"] = []

@@ -31,7 +31,7 @@ let () =
 	(* tuples are converted to lists *)
 	let tuple = Lymp.get modul "get_tuple" [] in
 	( match tuple with
-	| Lymp.Pylist l -> ()
+	| Lymp.Pytuple l -> ()
 	| _ -> raise (Failure "failed")) ;
 
 	(* ASSERTING THAT PASSING PYREF AS ARGUMENT PASSES ACTUAL OBJECT *)
@@ -51,7 +51,7 @@ let () =
 	Lymp.close py ;
 
 	(* python_log should now be :
-		[1, 2]
+		(1, 2)
 		salut
 		42
 		42.42
@@ -65,7 +65,7 @@ let () =
 
 	let lines = file_lines "python_log" in
 	let expected_lines = [
-		"[1, 2]" ;
+		"(1, 2)" ;
 		"salut" ;
 		"42" ;
 		"42.42" ;
