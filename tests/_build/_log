@@ -1,0 +1,22 @@
+### Starting build.
+# Target: test1.ml.depends, tags: { package(bson), extension:ml, file:test1.ml, ocaml, ocamldep, quiet, thread }
+ocamlfind ocamldep -package bson -modules test1.ml > test1.ml.depends
+# Target: srcs/lymp.mli.depends, tags: { package(bson), extension:mli, file:srcs/lymp.mli, ocaml, ocamldep, quiet, thread }
+ocamlfind ocamldep -package bson -modules srcs/lymp.mli > srcs/lymp.mli.depends
+# Target: srcs/lymp.cmi, tags: { package(bson), byte, compile, extension:mli, file:srcs/lymp.mli, interf, ocaml, quiet, thread }
+ocamlfind ocamlc -c -thread -package bson -I srcs -o srcs/lymp.cmi srcs/lymp.mli
+# Target: test1.cmo, tags: { package(bson), byte, compile, extension:cmo, extension:ml, file:test1.cmo, file:test1.ml, implem, ocaml, quiet, thread }
+ocamlfind ocamlc -c -thread -package bson -I srcs -o test1.cmo test1.ml
++ ocamlfind ocamlc -c -thread -package bson -I srcs -o test1.cmo test1.ml
+File "test1.ml", line 5, characters 25-50:
+Warning 10: this expression should have type unit.
+# Target: srcs/lymp.ml.depends, tags: { package(bson), extension:ml, file:srcs/lymp.ml, ocaml, ocamldep, quiet, thread }
+ocamlfind ocamldep -package bson -modules srcs/lymp.ml > srcs/lymp.ml.depends
+# Target: srcs/lymp.cmx, tags: { package(bson), compile, extension:cmx, extension:ml, file:srcs/lymp.cmx, file:srcs/lymp.ml, implem, native, ocaml, quiet, thread }
+ocamlfind ocamlopt -c -thread -package bson -I srcs -o srcs/lymp.cmx srcs/lymp.ml
++ ocamlfind ocamlopt -c -thread -package bson -I srcs -o srcs/lymp.cmx srcs/lymp.ml
+File "srcs/lymp.ml", line 151, characters 18-70:
+Error: This expression has type Bson.t but an expression was expected of type
+         Bson.element
+Command exited with code 2.
+# Compilation unsuccessful.

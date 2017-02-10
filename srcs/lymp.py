@@ -55,6 +55,7 @@ class ExecutionHandler:
 
 	to_ret_types = {
 		int: "i",
+		tuple: "t"
 		list: "l",
 		str: "s",
 		float: "f",
@@ -93,9 +94,6 @@ class ExecutionHandler:
 
 	def ret_to_msg(self, ret, ret_ref):
 		msg = {}
-		# if ret is a tuple. convert it to a list
-		if type(ret) is tuple:
-			ret = list(ret)
 		# if python 2 and type is str, convert to unicode and send as string (assume utf-8)
 		if sys.version_info.major == 2 and type(ret) is str:
 			ret = ret.decode('utf-8')
@@ -150,6 +148,9 @@ class ExecutionHandler:
 			# if we have a list, we must recursively resolve
 			if type(arg) is list:
 				args[i] = self.resolve_args(arg)[0]
+			# if we have a dict, it is a tuple inside "v"
+			if type(arg) is dict:
+				args[i] = tuple(self.resolve_args(arg["v"])[0])
 			i += 1
 		return args, named
 

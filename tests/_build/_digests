@@ -1,0 +1,8 @@
+"Resource: /Users/machd/lymp/tests/srcs/lymp.mli": "\180Q\141y\026q\002\253\022vn\206f\165<!"
+"Rule: ocaml dependencies mli (%=srcs/lymp )": "u\139\1934K\212\144\210\1400z\201\250|\204\130"
+"Rule: ocaml: mli -> cmi (%=srcs/lymp )": "J\024Yh\182\221\209]\"\138\0289#V\003\251"
+"Resource: /Users/machd/lymp/tests/test1.ml": "5\015 KQ\230\023\250\254\160{\r\229x\1506"
+"Rule: ocaml: ml -> cmo & cmi (%=test1 )": "\1530#\156\228>\161\029S\238\201e\216\201\238\176"
+"Rule: ocaml dependencies ml (%=srcs/lymp )": "\005\030\028\190!\187\170\212\166\184Z\172\023'P\182"
+"Rule: ocaml dependencies ml (%=test1 )": "4\197G\197\\WRX`\026w\252\166\174\249h"
+"Resource: /Users/machd/lymp/tests/srcs/lymp.ml": "\161\131vE\222=2\144\249\176\224Z\131\005\\\016"
