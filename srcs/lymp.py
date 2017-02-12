@@ -159,6 +159,9 @@ class ExecutionHandler:
 
 	def execute_instruction(self, instruction):
 		if "r" in instruction:
+			# if we are asked to realease an inexisting of already released reference
+			if "d" in instruction and instruction["r"] not in self.objs:
+				return None
 			# module is the object referenced, later we call getattr to get the method called
 			module = self.objs[instruction["r"]]
 			# if we were asked to 'detach' (release) the reference

@@ -4,7 +4,7 @@ exception Unknown_return_type of string
 exception Wrong_Pytype of string
 exception Expected_reference_not_module
 exception Could_not_create_pipe
-exception Pyexception
+exception Pyexception of string
 
 
 (* TYPES *)
@@ -23,9 +23,15 @@ type pycommunication = {
 	mutable closed: bool
 }
 
+type reference = {
+	mutable py:			pycommunication ;
+	ref_nb:				int ;
+	mutable released:	bool
+}
+
 type pycallable =
 	Pymodule of pycommunication * string
-	| Pyreference of pycommunication * int
+	| Pyreference of reference
 
 type pyobj =
 	Pystr of string
@@ -154,7 +160,7 @@ and serialize = function
 	| Pyfloat f -> Bson.create_double f
 	| Pybool b -> Bson.create_boolean b
 	| Pybytes b -> Bson.create_user_binary b
-	| Pyref (Pyreference (py,ref_nb)) -> Bson.create_jscode (string_of_int ref_nb)
+	| Pyref (Pyreference {py ; ref_nb ; released}) -> Bson.create_jscode (string_of_int ref_nb)
 	| Pyref (Pymodule _) -> raise Expected_reference_not_module
 	| Pynone -> Bson.create_null ()
 	| Namedarg (name, value) -> Bson.create_list [serialize value ; Bson.create_jscode ("!" ^ name)]
@@ -173,38 +179,56 @@ and deserialize py doc =
 	| "f" -> Pyfloat (Bson.get_double element)
 	| "b" -> Pybool (Bson.get_boolean element)
 	| "B" -> Pybytes (Bson.get_user_binary element)
-	| "r" -> let r = Pyreference (py, (int_of_string (Bson.get_jscode element))) in
+	| "r" -> let r = {py = py ; ref_nb = int_of_string (Bson.get_jscode element) ; released = false} in
 				Gc.finalise release_reference r ;
-				Pyref r
+				Pyref (Pyreference r)
 	| "n" -> Pynone
-	| "e" -> raise Pyexception
+	| "e" -> raise (Pyexception "check the file python_log for traceback")
 	| n -> raise (Unknown_return_type n)
 
-and py_call_raw py release_ref set_attr modul dereference get_attr ret_ref mod_or_ref_bytes func_name args =
+and py_call_raw py arg_to_not_finalize_ref release_ref set_attr modul dereference get_attr ret_ref mod_or_ref_bytes func_name args =
+	let mod_or_ref_bytes = if dereference = false then mod_or_ref_bytes else (
+		match arg_to_not_finalize_ref with
+			| Pymodule (py, name) -> raise Expected_reference_not_module
+			| Pyreference {py ; ref_nb ; released} -> Bson.create_int64 (Int64.of_int ref_nb)
+	) in
 	let doc = Bson.empty in
 	let lst = serialize_list args in
 	let doc = Bson.add_element "a" lst doc in
-	let doc = Bson.add_element (if modul then "m" else "r") mod_or_ref_bytes doc in
 	let doc = Bson.add_element (if dereference then "g" else "f") (Bson.create_string func_name) doc in
 	let doc = if get_attr then (Bson.add_element "t" (Bson.create_string "") doc) else doc in
 	let doc = if set_attr then (Bson.add_element "s" (Bson.create_string "") doc) else doc in
 	let doc = if ret_ref then (Bson.add_element "R" (Bson.create_string "") doc) else doc in
 	let doc = if release_ref then (Bson.add_element "d" (Bson.create_string "") doc) else doc in
-	let bytes = Bson.encode doc in
-	Mutex.lock py.mutex ;
-	send_raw_bytes py bytes ;
-	let ret_bytes = get_raw_bytes py in
-	Mutex.unlock py.mutex ;
-	let ret_doc = Bson.decode ret_bytes in
-	let ret_obj = deserialize py ret_doc in
-	ret_obj
+	(* mutex lock before making bytes, to prevent release of current reference *)
+	let continue = ( if release_ref
+		then
+			Mutex.try_lock py.mutex
+		else
+			( Mutex.lock py.mutex ; true )
+	) in
+	if continue = false then Pynone else (
+		let mod_or_ref_bytes = if dereference = false then mod_or_ref_bytes else (
+			match arg_to_not_finalize_ref with
+				| Pymodule (py, name) -> raise Expected_reference_not_module
+				| Pyreference {py ; ref_nb ; released} -> Bson.create_int64 (Int64.of_int ref_nb)
+		) in
+		let doc = Bson.add_element (if modul then "m" else "r") mod_or_ref_bytes doc in
+		let bytes = Bson.encode doc in
+		send_raw_bytes py bytes ;
+		let ret_bytes = get_raw_bytes py in
+		Mutex.unlock py.mutex ;
+		let ret_doc = Bson.decode ret_bytes in
+		let ret_obj = deserialize py ret_doc in
+		ret_obj
+	)
 
 and release_reference reference =
 	match reference with
-	| Pymodule _ -> ()
-	| Pyreference (py, ref_nb) ->
-		( if py.closed = false then
-			( try ignore (py_call_raw py true false false false false false (Bson.create_int64 (Int64.of_int ref_nb)) "" []) with
+	| {py ; ref_nb ; released} ->
+		( if py.closed = false && released = false then
+			( reference.released <- true ;
+			try ignore (py_call_raw py (Pymodule (py, "")) true false false false false false (Bson.create_int64 (Int64.of_int ref_nb)) "" []) with
 		 	  | _ -> ()
 			)
 		  else
@@ -222,8 +246,8 @@ let builtins py =
 
 let get callable func args =
 	match callable with
-	| Pymodule (py, name) -> py_call_raw py false false true false false false (Bson.create_string name) func args
-	| Pyreference (py, ref_nb) -> py_call_raw py false false false false false false (Bson.create_int64 (Int64.of_int ref_nb)) func args
+	| Pymodule (py, name) -> py_call_raw py callable false false true false false false (Bson.create_string name) func args
+	| Pyreference {py ; ref_nb} -> py_call_raw py callable false false false false false false (Bson.create_int64 (Int64.of_int ref_nb)) func args
 
 let call callable func args =
 	ignore (get callable func args)
@@ -256,8 +280,8 @@ let get_bytes callable func args =
 let get_ref callable func args =
 	let ret = (
 		match callable with
-		| Pymodule (py, name) -> py_call_raw py false false true false false true (Bson.create_string name) func args
-		| Pyreference (py, ref_nb) -> py_call_raw py false false false false false true (Bson.create_int64 (Int64.of_int ref_nb)) func args
+		| Pymodule (py, name) -> py_call_raw py callable false false true false false true (Bson.create_string name) func args
+		| Pyreference {py ; ref_nb ; released} -> py_call_raw py callable false false false false false true (Bson.create_int64 (Int64.of_int ref_nb)) func args
 	) in
 	match ret with
 	| Pyref r -> r
@@ -275,8 +299,8 @@ let get_list callable func args =
 
 let attr callable name =
 	match callable with
-	| Pymodule (py, name) -> py_call_raw py false false true false true false (Bson.create_string name) name []
-	| Pyreference (py, ref_nb) -> py_call_raw py false false false false true false (Bson.create_int64 (Int64.of_int ref_nb)) name []
+	| Pymodule (py, name) -> py_call_raw py callable false false true false true false (Bson.create_string name) name []
+	| Pyreference {py ; ref_nb ; released} -> py_call_raw py callable false false false false true false (Bson.create_int64 (Int64.of_int ref_nb)) name []
 
 let attr_string callable name =
 	match attr callable name with
@@ -306,8 +330,8 @@ let attr_bytes callable name =
 let attr_ref callable name =
 	let ret = (
 		match callable with
-		| Pymodule (py, name) -> py_call_raw py false false true false true true (Bson.create_string name) name []
-		| Pyreference (py, ref_nb) -> py_call_raw py false false false false true true (Bson.create_int64 (Int64.of_int ref_nb)) name []
+		| Pymodule (py, name) -> py_call_raw py callable false false true false true true (Bson.create_string name) name []
+		| Pyreference {py ; ref_nb ; released} -> py_call_raw py callable false false false false true true (Bson.create_int64 (Int64.of_int ref_nb)) name []
 	) in
 	match ret with
 	| Pyref r -> r
@@ -325,18 +349,18 @@ let attr_list callable name =
 
 let set_attr callable name value =
 	ignore ( match callable with
-	| Pymodule (py, name) -> py_call_raw py false true true false false false (Bson.create_string name) name [value]
-	| Pyreference (py, ref_nb) -> py_call_raw py false true false false false false (Bson.create_int64 (Int64.of_int ref_nb)) name [value] ) ;
+	| Pymodule (py, name) -> py_call_raw py callable false true true false false false (Bson.create_string name) name [value]
+	| Pyreference {py ; ref_nb ; released} -> py_call_raw py callable false true false false false false (Bson.create_int64 (Int64.of_int ref_nb)) name [value] ) ;
 	()
 
 let dereference r =
 	match r with
 	| Pymodule (py, name) -> raise Expected_reference_not_module
-	| Pyreference (py, ref_nb) -> py_call_raw py false false false true false false (Bson.create_int64 (Int64.of_int ref_nb)) "" []
+	| Pyreference {py ; ref_nb ; released} -> py_call_raw py r false false false true false false (Bson.create_string "") "" []
 
 let close py =
-	Mutex.lock py.mutex ;
 	py.closed <- true ;
+	Mutex.lock py.mutex ;
 	send_raw_bytes py "done" ;
 	Mutex.unlock py.mutex ;
 	ignore (Unix.close_process (py.process_in, py.process_out)) ;

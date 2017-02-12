@@ -1,6 +1,6 @@
 OASISFormat: 0.3
 Name:        lymp
-Version:     0.1.3
+Version:     0.2.1
 Synopsis:    Use Python functions and objects from OCaml
 Authors:     Dominik Bousquet
 License:     MIT

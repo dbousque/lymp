@@ -4,7 +4,7 @@ exception Unknown_return_type of string
 exception Wrong_Pytype of string
 exception Expected_reference_not_module
 exception Could_not_create_pipe
-exception Pyexception
+exception Pyexception of string
 
 (* information enabling communication with the python process *)
 type pycommunication
