@@ -178,7 +178,7 @@ and deserialize py doc =
 	| "l" -> Pylist (deserialize_list py (Bson.get_list element))
 	| "f" -> Pyfloat (Bson.get_double element)
 	| "b" -> Pybool (Bson.get_boolean element)
-	| "B" -> Pybytes (Bson.get_user_binary element)
+	| "B" -> Pybytes (Bson.get_generic_binary element)
 	| "r" -> let r = {py = py ; ref_nb = int_of_string (Bson.get_jscode element) ; released = false} in
 				Gc.finalise release_reference r ;
 				Pyref (Pyreference r)

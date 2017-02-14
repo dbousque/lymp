@@ -12,6 +12,8 @@ def int_to_int64_bytes(i):
 def py_to_bson(val):
 	if type(val) is int:
 		return bson.int64.Int64(val)
+	if sys.version_info.major == 2 and type(val) is str:
+		return bson.binary.Binary(val)
 	return val
 
 def exit_lymp():
@@ -63,9 +65,10 @@ class ExecutionHandler:
 		bool: "b",
 		bytes: "B"
 	}
-	# for python 2, unicode is str
+	# for python 2, unicode is str and str is bytes
 	if sys.version_info.major == 2:
 		to_ret_types[unicode] = "s"
+		to_ret_types[str] = "B"
 
 	def __init__(self, reader_writer):
 		self.reader_writer = reader_writer
@@ -94,9 +97,6 @@ class ExecutionHandler:
 
 	def ret_to_msg(self, ret, ret_ref):
 		msg = {}
-		# if python 2 and type is str, convert to unicode and send as string (assume utf-8)
-		if sys.version_info.major == 2 and type(ret) is str:
-			ret = ret.decode('utf-8')
 		# reference (type not supported or explicitely asked to)
 		if ret_ref or (type(ret) not in self.to_ret_types):
 			self.ref_nb += 1
@@ -137,6 +137,9 @@ class ExecutionHandler:
 				named[str(arg[0])[1:]] = self.resolve_args(arg[1])[0]
 				del args[i]
 				continue
+			# if bytes
+			if type(arg) is bson.binary.Binary:
+				args[i] = bytes(arg)
 			# resolve reference args (using bson jscode)
 			if type(arg) is bson.code.Code:
 				args[i] = self.objs[int(arg)]
