@@ -39,6 +39,7 @@ val get_float : pycallable -> string -> pyobj list -> float
 val get_bool : pycallable -> string -> pyobj list -> bool
 val get_bytes : pycallable -> string -> pyobj list -> bytes
 val get_ref : pycallable -> string -> pyobj list -> pycallable
+val get_tuple : pycallable -> string -> pyobj list -> pyobj list
 val get_list : pycallable -> string -> pyobj list -> pyobj list
 
 (* get attributes of modules and objects *)
@@ -49,6 +50,7 @@ val attr_float : pycallable -> string -> float
 val attr_bool : pycallable -> string -> bool
 val attr_bytes : pycallable -> string -> bytes
 val attr_ref : pycallable -> string -> pycallable
+val attr_tuple : pycallable -> string -> pyobj list
 val attr_list : pycallable -> string -> pyobj list
 
 val set_attr : pycallable -> string -> pyobj -> unit
