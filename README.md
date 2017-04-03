@@ -266,6 +266,7 @@ val dereference : pycallable -> pyobj
 If the value's type is supported, it will be returned, otherwise a reference to it is returned.
 
 </br>
+
 Example usage of a reference :
 ```ocaml
 let file = get_ref builtin "open" [Pystr "input_file.txt"] in
