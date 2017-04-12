@@ -277,6 +277,7 @@ print_endline content
 You can find a more in-depth example in `examples/reference.ml`
 
 <h2>Notes</h2>
+
 - In Python 2, Pystr are converted to `unicode`, assuming that the string is utf-8 encoded, and Pybytes to `str`
 - If there is a fatal exception, the python process continues as normal, but a Pyexception is raised on the OCaml side.
 - Python's stdout is a file named `python_log`, you will find the output and uncatched exceptions' traceback there.
