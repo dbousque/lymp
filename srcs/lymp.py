@@ -21,7 +21,7 @@ def exit_lymp():
 	sys.stdout.close()
 	exit(0)
 
-# a communication class, could be implemented using other ipc methods,
+# A communication class, could be implemented using other ipc methods,
 # it only needs the methods 'send_bytes' and 'get_bytes'
 class PipeReaderWriter:
 
@@ -29,7 +29,7 @@ class PipeReaderWriter:
 		self.get_pipes(read_pipe_name, write_pipe_name)
 
 	def get_pipes(self, read_pipe_name, write_pipe_name):
-		# order of open matters, since it is blocking, should match OCaml order
+		# Order of open matters, since it is blocking, should match OCaml order
 		# 0 to be unbuffered, so we don't have to flush (better performance ?)
 		self.write_pipe = open(write_pipe_name, 'wb', 0)
 		self.read_pipe = open(read_pipe_name, 'rb', 0)
