@@ -1,6 +1,6 @@
 <h1>Lymp</h1>
 
-`lymp` is a library allowing you to use Python functions and objects from OCaml. It gives access to the rich ecosystem of libraries in Python. You might want to use `selenium`, `scipy`, `lxml`, `requests`, `pandas` or `matplotlib`.
+`lymp` is a library allowing you to use Python functions and objects from OCaml. It gives access to the rich ecosystem of libraries in Python. You might want to use `selenium`, `scipy`, `lxml`, `requests`, `tensorflow` or `matplotlib`.
 
 You can also very easily write OCaml wrappers for Python libraries or your own modules.
 
