@@ -9,5 +9,5 @@ Plugins:     META (0.3)
 Library lymp
   Path:          srcs
   BuildTools:    ocamlbuild
-  BuildDepends:  bson, unix, threads
+  BuildDepends:  unix, threads
   Modules:       Lymp

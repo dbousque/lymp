@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 8b83386d4740cba76265834c19a8ff79)
+# DO NOT EDIT (digest: c4ed2b26dcfb6d5a5b888077fd80e49f)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -16,7 +16,6 @@ true: annot, bin_annot
 "_darcs": not_hygienic
 # Library lymp
 "srcs/lymp.cmxs": use_lymp
-<srcs/*.ml{,i,y}>: pkg_bson
 <srcs/*.ml{,i,y}>: pkg_threads
 <srcs/*.ml{,i,y}>: pkg_unix
 # OASIS_STOP
