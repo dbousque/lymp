@@ -131,9 +131,9 @@ let bytes_to_int bytes nb =
 	_to_int bytes 0 nb 0
 
 let send_raw_bytes py bytes =
-	let len = Int64.of_int (String.length bytes) in
+	let len = Int64.of_int (Bytes.length bytes) in
 	ignore (Unix.write py.write_pipe.fd (int64_to_bytes len) 0 8) ;
-	ignore (Unix.write py.write_pipe.fd bytes 0 (String.length bytes))
+	ignore (Unix.write py.write_pipe.fd bytes 0 (Bytes.length bytes))
 
 let get_raw_bytes py =
 	let len = Bytes.make 8 (Char.chr 0) in
@@ -159,7 +159,7 @@ and serialize = function
 	| Pylist lst -> serialize_list lst
 	| Pyfloat f -> Bson.create_double f
 	| Pybool b -> Bson.create_boolean b
-	| Pybytes b -> Bson.create_user_binary b
+	| Pybytes b -> Bson.create_user_binary (Bytes.to_string b)
 	| Pyref (Pyreference {py ; ref_nb ; released}) -> Bson.create_jscode (string_of_int ref_nb)
 	| Pyref (Pymodule _) -> raise Expected_reference_not_module
 	| Pynone -> Bson.create_null ()
@@ -178,7 +178,7 @@ and deserialize py doc =
 	| "l" -> Pylist (deserialize_list py (Bson.get_list element))
 	| "f" -> Pyfloat (Bson.get_double element)
 	| "b" -> Pybool (Bson.get_boolean element)
-	| "B" -> Pybytes (Bson.get_generic_binary element)
+	| "B" -> Pybytes ((Bson.get_generic_binary element) |> Bytes.of_string)
 	| "r" -> let r = {py = py ; ref_nb = int_of_string (Bson.get_jscode element) ; released = false} in
 				Gc.finalise release_reference r ;
 				Pyref (Pyreference r)
@@ -214,11 +214,11 @@ and py_call_raw py arg_to_not_finalize_ref release_ref set_attr modul dereferenc
 				| Pyreference {py ; ref_nb ; released} -> Bson.create_int64 (Int64.of_int ref_nb)
 		) in
 		let doc = Bson.add_element (if modul then "m" else "r") mod_or_ref_bytes doc in
-		let bytes = Bson.encode doc in
+		let bytes = Bson.encode doc |> Bytes.of_string in
 		send_raw_bytes py bytes ;
 		let ret_bytes = get_raw_bytes py in
 		Mutex.unlock py.mutex ;
-		let ret_doc = Bson.decode ret_bytes in
+		let ret_doc = Bson.decode (Bytes.to_string ret_bytes) in
 		let ret_obj = deserialize py ret_doc in
 		ret_obj
 	)
@@ -361,7 +361,7 @@ let dereference r =
 let close py =
 	py.closed <- true ;
 	Mutex.lock py.mutex ;
-	send_raw_bytes py "done" ;
+	send_raw_bytes py (Bytes.of_string "done") ;
 	Mutex.unlock py.mutex ;
 	ignore (Unix.close_process (py.process_in, py.process_out)) ;
 	Sys.remove py.read_pipe.path ;

@@ -42,7 +42,7 @@ let () =
 	Lymp.call modul "print_arg" [Lymp.Pyint 42] ;
 	Lymp.call modul "print_arg" [Lymp.Pyfloat 42.42] ;
 	Lymp.call modul "print_arg" [Lymp.Pybool true] ;
-	Lymp.call modul "print_arg" [Lymp.Pybytes "some bytes"] ;
+	Lymp.call modul "print_arg" [Lymp.Pybytes (Bytes.of_string "some bytes")] ;
 	Lymp.call modul "print_arg" [Lymp.get modul "ret_unicode" []] ;
 	Lymp.call modul "print_arg" [Lymp.get modul "rand_str" []] ;
 	(* equivalent of modul.print_arg(modul.first_of_tuple(tuple)) : *)
