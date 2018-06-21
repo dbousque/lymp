@@ -7,7 +7,8 @@ License:     MIT
 Plugins:     META (0.3)
 
 Library lymp
-  Path:          srcs
-  BuildTools:    ocamlbuild
-  BuildDepends:  unix, threads
-  Modules:       Lymp
+  Path:             srcs
+  BuildTools:       ocamlbuild
+  BuildDepends:     unix, threads
+  Modules:          Lymp
+  InternalModules:  Bson
