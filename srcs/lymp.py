@@ -134,11 +134,7 @@ class ExecutionHandler:
 		for arg in args:
 			# resolve named args (list of size 2, first one being a bson.code.Code starting with "!")
 			if type(arg) is list and len(arg) == 2 and type(arg[0]) is bson.code.Code and str(arg[0])[0] == "!":
-				# resolve reference args (using bson jscode)
-				if type(arg[1]) is bson.code.Code:
-					named[str(arg[0])[1:]] = self.objs[int(self.resolve_args(arg[1])[0])]
-				else:
-					named[str(arg[0])[1:]] = self.resolve_args(arg[1])[0]
+        named[str(arg[0])[1:]] = self.resolve_args([arg[1]])[0][0]
 				del args[i]
 				continue
 			# if bytes
