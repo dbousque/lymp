@@ -134,7 +134,7 @@ class ExecutionHandler:
 		for arg in args:
 			# resolve named args (list of size 2, first one being a bson.code.Code starting with "!")
 			if type(arg) is list and len(arg) == 2 and type(arg[0]) is bson.code.Code and str(arg[0])[0] == "!":
-        named[str(arg[0])[1:]] = self.resolve_args([arg[1]])[0][0]
+				named[str(arg[0])[1:]] = self.resolve_args([arg[1]])[0][0]
 				del args[i]
 				continue
 			# if bytes
